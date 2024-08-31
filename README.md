@@ -1,6 +1,13 @@
 # UTILIFY: WHAT IS IT?
 A tampermonkey add-on for KoGaMa that aims to make as many KoGaMaBuddy features as global and easily accessible as only possible.
 
+This is the **original Utilify repository**. Any other source than ones considered here **might be malicious**.
+
+
+# ACCESSIBILITY
+Besides being hosted on **Github** you can also find Utilify on [GreasyFork](https://greasyfork.org/en/scripts/505596-utilify-kogama)
+
+
 # CURRENT FEATURES
 
 - Allow Paste
