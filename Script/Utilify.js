@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.2
+// @version      3.6.3
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -12,6 +12,7 @@
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
 // ==/UserScript==
 
+// GITHUB REPOSITORY FOR UTILIY: https://github.com/deutschsimmy/Utilify
 // SECONDARY CREDITS
 
 // EXTERNAL HELP:
@@ -1039,81 +1040,6 @@ GM_addStyle(`
 ;(function () {
 	"use strict"
 
-	const SEVEN_HOURS = 7 * 60 * 60 * 1000
-
-	const lastNotificationTime = localStorage.getItem("lastNotificationTime")
-	const currentTime = Date.now()
-	if (
-		!lastNotificationTime ||
-		currentTime - lastNotificationTime >= SEVEN_HOURS
-	) {
-		displayNotification()
-		localStorage.setItem("lastNotificationTime", currentTime)
-		createBlockingLayer()
-	}
-
-	function displayNotification() {
-		const notification = document.createElement("div")
-		notification.style.position = "fixed"
-		notification.style.top = "-100px"
-		notification.style.left = "50%"
-		notification.style.transform = "translateX(-50%)"
-		notification.style.background = "rgba(0, 0, 0, 0.7)"
-		notification.style.backdropFilter = "blur(5px)"
-		notification.style.padding = "20px"
-		notification.style.borderRadius = "17px"
-		notification.style.textShadow = "0 0 3px #00000"
-		notification.style.zIndex = "9999"
-		notification.style.boxShadow = "0 0 10px #825CB0"
-		notification.style.transition = "top 0.5s ease-in-out"
-		notification.style.color = "#fff"
-		notification.innerHTML = `
-            <p style="margin: 0; font-size: 16px; font-weight: bold;">REMEMBER</p>
-            <p style="margin: 10px 0; white-space: pre-line;">Someone trying to actually help you will never ask you for your password.\n\nRemember to stay safe and not trust users that seek out your personal data.\n\nWarm regards,\n<a href="https://www.kogama.com/profile/17769289/">Simon.</a></p>
-            <button style="margin-top: 10px; background: #3498db; color: #fff; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; display: block; margin: 0 auto;" id="closeBtn">Stay Safe!</button>
-        `
-
-		document.body.appendChild(notification)
-
-		setTimeout(() => {
-			notification.style.top = "296px"
-		}, 100)
-
-		const closeBtn = notification.querySelector("#closeBtn")
-		closeBtn.addEventListener("click", () => {
-			notification.style.top = "-100px"
-			setTimeout(() => {
-				notification.remove()
-				removeBlockingLayer()
-			}, 500)
-		})
-	}
-
-	function createBlockingLayer() {
-		const blockingLayer = document.createElement("div")
-		blockingLayer.classList.add("blocking-layer")
-		blockingLayer.style.position = "fixed"
-		blockingLayer.style.top = "0"
-		blockingLayer.style.left = "0"
-		blockingLayer.style.width = "100%"
-		blockingLayer.style.height = "100%"
-		blockingLayer.style.background = "rgba(0, 0, 0, 0.5)"
-		blockingLayer.style.zIndex = "9998"
-		blockingLayer.style.pointerEvents = "auto"
-		document.body.appendChild(blockingLayer)
-	}
-
-	function removeBlockingLayer() {
-		const blockingLayer = document.querySelector(".blocking-layer")
-		if (blockingLayer) {
-			blockingLayer.remove()
-		}
-	}
-})()
-
-;(function () {
-	"use strict"
-
 	if (
 		!/^https:\/\/www\.kogama\.com\/profile\/\d+\/avatars\/?$/.test(
 			window.location.href,
@@ -1719,7 +1645,7 @@ GM_addStyle(`
         observer.observe(document.body, { childList: true, subtree: true });
     }
     GM_addStyle(`
-        .password-generator {
+        .password-generator-l1337x {
             position: absolute;
             background: #282a36;
             border: 1px solid #44475a;
@@ -1732,14 +1658,14 @@ GM_addStyle(`
             max-height: 500px; /* Ensuring it doesn't grow too big */
             overflow-y: auto; /* Scroll if needed */
         }
-        .password-generator.show {
+        .password-generator-l1337x.show-l1337x {
             display: block;
         }
-        .draggable {
+        .draggable-l1337x {
             position: fixed;
             cursor: move;
         }
-        .draggable-header {
+        .draggable-header-l1337x {
             background: #44475a;
             padding: 5px;
             cursor: move;
@@ -1747,17 +1673,17 @@ GM_addStyle(`
             color: #f8f8f2;
             border-bottom: 1px solid #6272a4;
         }
-        .draggable-content {
+        .draggable-content-l1337x {
             padding: 10px;
         }
-        .key-icon {
+        .key-icon-l1337x {
             width: 64px; /* Adjusted size */
             height: 64px; /* Adjusted size */
             cursor: pointer;
             max-width: 64px;
             max-height: 64px;
         }
-        .close-btn {
+        .close-btn-l1337x {
             cursor: pointer;
             color: #ff5555;
             float: right;
@@ -1767,7 +1693,7 @@ GM_addStyle(`
             display: block;
             margin-bottom: 8px;
         }
-        input[type="range"] {
+        input[type="range"].range-l1337x {
             -webkit-appearance: none;
             width: 100%;
             height: 16px;
@@ -1776,7 +1702,7 @@ GM_addStyle(`
             opacity: 0.7;
             transition: opacity .2s;
         }
-        input[type="range"]::-webkit-slider-thumb {
+        input[type="range"].range-l1337x::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
             width: 24px;
@@ -1785,35 +1711,35 @@ GM_addStyle(`
             border-radius: 50%; /* Circular slider */
             cursor: pointer;
         }
-        input[type="range"]::-moz-range-thumb {
+        input[type="range"].range-l1337x::-moz-range-thumb {
             width: 24px;
             height: 24px;
             background: #50fa7b;
             border-radius: 50%; /* Circular slider */
             cursor: pointer;
         }
-        input[type="number"] {
+        input[type="number"].num-l1337x {
             width: 60px;
             margin: 5px 0;
         }
-        button {
+        button.btn-l1337x {
             background-color: #50fa7b;
             border: none;
             padding: 5px 10px;
             cursor: pointer;
             border-radius: 3px;
         }
-        button:hover {
+        button.btn-l1337x:hover {
             background-color: #8be9fd;
         }
-        #generatedPassword {
+        #generatedPassword-l1337x {
             margin-top: 10px;
             background: #44475a;
             padding: 5px;
             border-radius: 3px;
             word-break: break-word; /* Break long text */
         }
-        input[type="checkbox"] {
+        input[type="checkbox"].chkbox-l1337x {
             margin-right: 8px;
         }
     `);
@@ -1825,22 +1751,23 @@ GM_addStyle(`
 
         const keyIcon = document.createElement('img');
         keyIcon.src = 'https://i.imgur.com/a17WyRx.png';
-        keyIcon.className = 'key-icon';
+        keyIcon.className = 'key-icon-l1337x';
         keyIcon.title = 'Generate Password';
         const generatorDiv = document.createElement('div');
-        generatorDiv.className = 'password-generator draggable';
+        generatorDiv.className = 'password-generator-l1337x draggable-l1337x';
         generatorDiv.innerHTML = `
-            <div class="draggable-header">
-                Password Generator <span class="close-btn">&times;</span>
+            <div class="draggable-header-l1337x">
+                Password Generator <span class="close-btn-l1337x">&times;</span>
             </div>
-            <div class="draggable-content">
-                <label><input type="checkbox" id="numCheckbox" checked> Include Numbers</label>
-                <label><input type="checkbox" id="specialCheckbox" checked> Include Special Characters</label>
-                <label><input type="checkbox" id="upperCheckbox" checked> Include Uppercase Letters</label>
-                <label><input type="checkbox" id="lowerCheckbox" checked> Include Lowercase Letters</label>
-                <label>Length: <input type="range" id="lengthInput" min="15" max="74" value="15"></label>
-                <input type="number" id="lengthValue" min="15" max="74" value="15">
-                <div id="generatedPassword"></div>
+            <div class="draggable-content-l1337x">
+                <label><input type="checkbox" id="numCheckbox-l1337x" class="chkbox-l1337x" checked> Include Numbers</label>
+                <label><input type="checkbox" id="specialCheckbox-l1337x" class="chkbox-l1337x" checked> Include Special Characters</label>
+                <label><input type="checkbox" id="upperCheckbox-l1337x" class="chkbox-l1337x" checked> Include Uppercase Letters</label>
+                <label><input type="checkbox" id="lowerCheckbox-l1337x" class="chkbox-l1337x" checked> Include Lowercase Letters</label>
+                <label>Length: <input type="range" id="lengthInput-l1337x" class="range-l1337x" min="15" max="74" value="15"></label>
+                <input type="number" id="lengthValue-l1337x" class="num-l1337x" min="15" max="74" value="15">
+                <button id="copyButton-l1337x" class="btn-l1337x">Copy Password</button>
+                <div id="generatedPassword-l1337x"></div>
             </div>
         `;
 
@@ -1854,22 +1781,22 @@ GM_addStyle(`
         keyIcon.style.top = `${rect.top}px`;
 
         keyIcon.addEventListener('click', () => {
-            generatorDiv.classList.toggle('show');
+            generatorDiv.classList.toggle('show-l1337x');
         });
 
-        generatorDiv.querySelector('.close-btn').addEventListener('click', () => {
-            generatorDiv.classList.remove('show');
+        generatorDiv.querySelector('.close-btn-l1337x').addEventListener('click', () => {
+            generatorDiv.classList.remove('show-l1337x');
         });
 
         dragElement(generatorDiv);
 
-        generatorDiv.querySelector('#lengthInput').addEventListener('input', (e) => {
-            generatorDiv.querySelector('#lengthValue').value = e.target.value;
+        generatorDiv.querySelector('#lengthInput-l1337x').addEventListener('input', (e) => {
+            generatorDiv.querySelector('#lengthValue-l1337x').value = e.target.value;
             generateAndUpdatePassword();
         });
 
-        generatorDiv.querySelector('#lengthValue').addEventListener('input', (e) => {
-            generatorDiv.querySelector('#lengthInput').value = e.target.value;
+        generatorDiv.querySelector('#lengthValue-l1337x').addEventListener('input', (e) => {
+            generatorDiv.querySelector('#lengthInput-l1337x').value = e.target.value;
             generateAndUpdatePassword();
         });
 
@@ -1877,17 +1804,29 @@ GM_addStyle(`
             checkbox.addEventListener('change', generateAndUpdatePassword);
         });
 
+        // Copy Password Button
+        generatorDiv.querySelector('#copyButton-l1337x').addEventListener('click', () => {
+            const passwordText = generatorDiv.querySelector('#generatedPassword-l1337x').textContent;
+            if (passwordText) {
+                navigator.clipboard.writeText(passwordText).then(() => {
+                    alert('Password copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy password: ', err);
+                });
+            }
+        });
+
         generateAndUpdatePassword();
     }
 
     function generateAndUpdatePassword() {
-        const length = parseInt(document.querySelector('#lengthInput').value, 10);
-        const includeNumbers = document.querySelector('#numCheckbox').checked;
-        const includeSpecial = document.querySelector('#specialCheckbox').checked;
-        const includeUpper = document.querySelector('#upperCheckbox').checked;
-        const includeLower = document.querySelector('#lowerCheckbox').checked;
+        const length = parseInt(document.querySelector('#lengthInput-l1337x').value, 10);
+        const includeNumbers = document.querySelector('#numCheckbox-l1337x').checked;
+        const includeSpecial = document.querySelector('#specialCheckbox-l1337x').checked;
+        const includeUpper = document.querySelector('#upperCheckbox-l1337x').checked;
+        const includeLower = document.querySelector('#lowerCheckbox-l1337x').checked;
         const password = generatePassword(length, includeNumbers, includeSpecial, includeUpper, includeLower);
-        document.querySelector('#generatedPassword').textContent = password;
+        document.querySelector('#generatedPassword-l1337x').textContent = password;
         updatePasswords(password);
     }
 
@@ -1927,8 +1866,8 @@ GM_addStyle(`
 
     function dragElement(elmnt) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        if (document.querySelector('.draggable-header')) {
-            document.querySelector('.draggable-header').onmousedown = dragMouseDown;
+        if (document.querySelector('.draggable-header-l1337x')) {
+            document.querySelector('.draggable-header-l1337x').onmousedown = dragMouseDown;
         } else {
             elmnt.onmousedown = dragMouseDown;
         }
@@ -1961,6 +1900,7 @@ GM_addStyle(`
 
     waitForElements('input.MuiInputBase-input.MuiFilledInput-input', addPasswordGeneratorUI);
 })();
+
 ;(function() {
     'use strict';
 
@@ -3437,17 +3377,21 @@ Have a wonderful day, user.
 		}
 	}
 
-	function applyGradientToElement(gradient) {
-		const seasons = ["spring", "summer", "autumn", "winter"]
-		seasons.forEach(season => {
-			const rootPageMobile = document.querySelector(
-				`body#root-page-mobile.${season}`,
-			)
-			if (rootPageMobile) {
-				rootPageMobile.style.backgroundImage = gradient
-			}
-		})
-	}
+function applyGradientToElement(gradient) {
+    // Select the base element and elements with seasonal/error classes
+    const elements = [
+        document.querySelector("body#root-page-mobile"),
+        ...["spring", "summer", "autumn", "winter", "error"].map(season =>
+            document.querySelector(`body#root-page-mobile.${season}`)
+        )
+    ];
+
+    elements.forEach(el => {
+        if (el) {
+            el.style.backgroundImage = gradient;
+        }
+    });
+}
 
 	function saveGradientSettings(gradient) {
 		localStorage.setItem("kogamaGradient", gradient)
@@ -5142,13 +5086,37 @@ const injectCss = (id, css) => {
     "use strict";
 
     const isOnProfilePage = /^https:\/\/www\.kogama\.com\/profile\/\d+\/?$/.test(window.location.href);
-    const isMe = () => {
+
+    function isMe() {
         const scriptTags = [...document.head.getElementsByTagName("script")];
         const bootstrapScript = scriptTags.find(script => script.textContent.includes("options.bootstrap"));
-        return bootstrapScript && /"is_me":\s*true/.test(bootstrapScript.textContent);
-    };
+
+        if (!bootstrapScript) {
+            console.warn("Bootstrap script not found.");
+            return false;
+        }
+
+        // Extract the options.bootstrap object from the script text
+        const bootstrapText = bootstrapScript.textContent;
+        const bootstrapObjectMatch = bootstrapText.match(/options\.bootstrap\s*=\s*(\{.*?\});/s);
+
+        if (!bootstrapObjectMatch) {
+            console.warn("Bootstrap object not found.");
+            return false;
+        }
+
+        try {
+            // Parse the extracted JSON
+            const bootstrapObject = JSON.parse(bootstrapObjectMatch[1]);
+            return bootstrapObject.object && bootstrapObject.object.is_me === true;
+        } catch (e) {
+            console.error("Failed to parse bootstrap object:", e);
+            return false;
+        }
+    }
 
     if (!isOnProfilePage || !isMe()) return;
+
 
     function createElementWithStyle(tag, style) {
         const element = document.createElement(tag);
