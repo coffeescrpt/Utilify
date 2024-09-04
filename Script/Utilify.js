@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.5
+// @version      3.6.5.1
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -2994,42 +2994,14 @@ Have a wonderful day, user.
 		}
 	})
 })()
-
 ;(function () {
-	"use strict"
-
-	var allowPaste = function (e) {
-		e.stopImmediatePropagation()
-		return true
-	}
-
-	var handlePasted = function (event) {
-		const clipboardData = (event.clipboardData || window.clipboardData).getData(
-			"text",
-		)
-
-		if (
-			clipboardData.startsWith("http://") ||
-			clipboardData.startsWith("https://")
-		) {
-			if (
-				clipboardData.includes("youtu.be") ||
-				clipboardData.includes("youtube.com")
-			) {
-				document.execCommand("insertText", false, clipboardData)
-			} else {
-				const formattedLink = clipboardData.replace(/\./g, "%2E")
-				document.execCommand("insertText", false, formattedLink)
-			}
-
-			event.preventDefault()
-		}
-	}
-
-	document.addEventListener("paste", allowPaste, true)
-	document.addEventListener("paste", handlePasted, true)
+    "use strict";
+    function allowPaste(event) {
+        event.stopImmediatePropagation();
+        return true;
+    }
+    document.addEventListener("paste", allowPaste, true);
 })()
-
 ;(function () {
 	"use strict"
 
