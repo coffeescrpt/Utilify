@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.3
+// @version      3.6.5
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -12,7 +12,7 @@
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
 // ==/UserScript==
 
-// GITHUB REPOSITORY FOR UTILIY: https://github.com/deutschsimmy/Utilify
+// GITHUB REPOSITORY FOR UTILIY: https://github.com/nixospuppy/Utilify
 // SECONDARY CREDITS
 
 // EXTERNAL HELP:
@@ -5569,5 +5569,406 @@ const injectCss = (id, css) => {
     }
 
     waitForTargetDiv();
+})();
+(function() {
+    'use strict';
+
+    function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const options = {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+        };
+        return date.toLocaleString('en-GB', options);
+    }
+
+    function createPopup() {
+        const popup = document.createElement('div');
+        popup.id = 'feedPopup';
+        popup.style.position = 'fixed';
+        popup.style.top = '50%';
+        popup.style.left = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+        popup.style.backgroundColor = '#f9f9f9';
+        popup.style.color = '#333';
+        popup.style.border = '1px solid #ddd';
+        popup.style.padding = '15px';
+        popup.style.borderRadius = '10px';
+        popup.style.boxShadow = '0 0 15px rgba(0,0,0,0.3)';
+        popup.style.zIndex = '9999';
+        popup.style.display = 'none';
+        popup.style.maxWidth = '600px';
+        popup.style.overflowY = 'auto';
+        popup.style.maxHeight = '80vh';
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close';
+        closeButton.style.background = '#eee';
+        closeButton.style.border = '1px solid #ddd';
+        closeButton.style.color = '#333';
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.borderRadius = '5px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.fontSize = '14px';
+        closeButton.addEventListener('click', () => {
+            popup.style.display = 'none';
+        });
+
+        popup.appendChild(closeButton);
+        document.body.appendChild(popup);
+
+        return popup;
+    }
+
+    function createCommentSection(postId, comments) {
+        const section = document.createElement('div');
+        section.style.padding = '10px';
+        section.style.borderTop = '1px solid #ddd';
+        section.style.marginTop = '10px';
+        section.style.backgroundColor = '#fafafa';
+        section.style.maxHeight = '150px';
+        section.style.overflowY = 'auto';
+
+        if (comments.length === 0) {
+            section.innerHTML = '<p>No comments found.</p>';
+            return section;
+        }
+
+        comments.forEach(comment => {
+            const commentDiv = document.createElement('div');
+            commentDiv.style.marginBottom = '10px';
+            commentDiv.style.padding = '10px';
+            commentDiv.style.backgroundColor = '#fff';
+            commentDiv.style.border = '1px solid #ddd';
+            commentDiv.style.borderRadius = '5px';
+            commentDiv.style.display = 'flex';
+            commentDiv.style.alignItems = 'center';
+
+            const avatarImg = document.createElement('img');
+            avatarImg.src = comment.images.medium;
+            avatarImg.alt = comment.profile_username;
+            avatarImg.style.width = '40px';
+            avatarImg.style.height = '40px';
+            avatarImg.style.borderRadius = '50%';
+            avatarImg.style.marginRight = '10px';
+
+            const content = document.createElement('div');
+            content.innerHTML = `
+                <a href="/profile/${comment.profile_id}" class="username-link" style="color: #6a1b9a;">${comment.profile_username}</a><br>
+                ${JSON.parse(comment._data).data}<br>
+                <small style="color: #888;">${formatTimestamp(comment.created)}</small>
+            `;
+
+            commentDiv.appendChild(avatarImg);
+            commentDiv.appendChild(content);
+
+            if (comment.can_delete) {
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'DELETE';
+                deleteButton.style.background = '#ffdddd';
+                deleteButton.style.border = '1px solid #ddd';
+                deleteButton.style.color = '#ff0000';
+                deleteButton.style.padding = '2px 5px';
+                deleteButton.style.borderRadius = '3px';
+                deleteButton.style.cursor = 'pointer';
+                deleteButton.style.fontSize = '10px';
+                deleteButton.style.marginLeft = '10px';
+                deleteButton.addEventListener('click', () => deleteComment(postId, comment.id));
+                commentDiv.appendChild(deleteButton);
+            }
+
+            section.appendChild(commentDiv);
+        });
+
+        return section;
+    }
+
+    function fetchComments(postId) {
+        const apiUrl = `https://www.kogama.com/api/feed/${postId}/comment/?count=993`;
+
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: apiUrl,
+            onload: function(response) {
+                if (response.status === 200) {
+                    const data = JSON.parse(response.responseText);
+                    const commentSection = createCommentSection(postId, data.data);
+                    const commentContainer = document.getElementById(`comments-${postId}`);
+                    if (commentContainer) {
+                        commentContainer.innerHTML = commentSection.innerHTML;
+                        commentContainer.style.display = 'block';
+                        console.log(`Comments for post ${postId} updated.`);
+                    }
+                } else {
+                    const commentContainer = document.getElementById(`comments-${postId}`);
+                    if (commentContainer) {
+                        commentContainer.innerHTML = '<p>No comments found.</p>';
+                    }
+                }
+            },
+            onerror: function() {
+                console.error('Failed to fetch comments');
+            }
+        });
+    }
+
+    function displayFeedData(feedData) {
+        const popup = document.getElementById('feedPopup');
+        popup.innerHTML = '';
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close';
+        closeButton.style.background = '#eee';
+        closeButton.style.border = '1px solid #ddd';
+        closeButton.style.color = '#333';
+        closeButton.style.padding = '5px 10px';
+        closeButton.style.borderRadius = '5px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.fontSize = '14px';
+        closeButton.addEventListener('click', () => {
+            popup.style.display = 'none';
+        });
+
+        popup.appendChild(closeButton);
+
+        feedData.forEach(item => {
+            let statusMessage = 'Feed object responsible either for new username, map or obtained avatar.';
+
+            try {
+                if (item._data) {
+                    const data = JSON.parse(item._data);
+                    if (data.status_message) {
+                        statusMessage = data.status_message.replace(/\n/g, '<br>');
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing _data:', e);
+            }
+
+            const content = document.createElement('div');
+            content.style.marginBottom = '15px';
+            content.style.padding = '10px';
+            content.style.backgroundColor = '#fff';
+            content.style.border = '1px solid #ddd';
+            content.style.borderRadius = '5px';
+            content.style.wordWrap = 'break-word';
+
+            content.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                    <img src="${item.profile_images.medium}" alt="${item.profile_username}" style="width: 64px; height: 64px; border-radius: 50%; margin-right: 10px;">
+                    <div>
+                        <a href="/profile/${item.profile_id}" class="username-link" style="color: #6a1b9a;">${item.profile_username}</a><br>
+                        <span style="color: #333;">${statusMessage}</span><br>
+                        <small style="color: #888;">${formatTimestamp(item.created)} <span style="color: #6a1b9a;">#${item.id}</span></small><br>
+                        <button id="commentsButton-${item.id}" style="background: #eee; border: 1px solid #ddd; color: #666; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 5px;">COMMENTS</button>
+                        <div id="comments-${item.id}" style="display: none;"></div>
+                        ${item.can_delete ? `<button style="background: #ffdddd; border: 1px solid #ddd; color: #ff0000; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 5px;" onclick="deletePost(${item.id})">DELETE POST</button>` : ''}
+                    </div>
+                </div>
+            `;
+
+            popup.appendChild(content);
+
+            const commentsButton = document.getElementById(`commentsButton-${item.id}`);
+            commentsButton.addEventListener('click', () => fetchComments(item.id));
+        });
+
+        popup.style.display = 'block';
+    }
+
+    function handleButtonClick() {
+        const profileID = window.location.pathname.split('/')[2];
+        const apiUrl = `https://www.kogama.com/api/feed/${profileID}/?page=1&count=130`;
+
+        fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            credentials: 'omit'
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        })
+        .then(data => {
+            displayFeedData(data.data);
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+        });
+    }
+
+    function extractOptionsBootstrap(scriptContent) {
+        const match = scriptContent.match(/options\.bootstrap\s*=\s*(\{[\s\S]*?\});/);
+        if (match && match[1]) {
+            return match[1];
+        }
+        return null;
+    }
+
+    function addButton() {
+        const targetDiv = document.querySelector('div._1Noq6');
+        if (targetDiv) {
+            if (document.querySelector('#fetchFeedButton')) return;
+
+            const iconUrl = 'https://i.imgur.com/QWrIZxT.png';
+            const newButton = document.createElement('button');
+            newButton.id = 'fetchFeedButton';
+            newButton.style.filter = 'invert(100%)';
+            newButton.title = 'Fetch Feed';
+            newButton.style.background = `url(${iconUrl}) no-repeat center center`;
+            newButton.style.backgroundSize = '32px 32px';
+            newButton.style.width = '32px';
+            newButton.style.height = '32px';
+            newButton.style.border = 'none';
+            newButton.style.cursor = 'pointer';
+            newButton.style.marginRight = '10px';
+            newButton.style.display = 'inline-block';
+            newButton.style.zIndex = '992';
+            newButton.addEventListener('click', handleButtonClick);
+
+            targetDiv.appendChild(newButton);
+        }
+    }
+
+    function checkIfMe() {
+        const scriptTags = document.querySelectorAll('head script');
+        let found = false;
+
+        scriptTags.forEach(scriptTag => {
+            const scriptContent = scriptTag.textContent;
+            const bootstrapJson = extractOptionsBootstrap(scriptContent);
+
+            if (bootstrapJson) {
+                found = true;
+                try {
+                    const options = new Function('return ' + bootstrapJson)();
+                    const isMe = options.object.is_me;
+
+                    if (!isMe) {
+                        addButton();
+                    }
+                } catch (e) {
+                    console.error('Error parsing bootstrap options:', e);
+                }
+            }
+        });
+
+        if (!found) {
+            addButton();
+        }
+    }
+
+    function init() {
+        createPopup();
+        window.fetchComments = fetchComments;
+        const observer = new MutationObserver((mutationsList) => {
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    if (document.querySelector('div._1Noq6')) {
+                        observer.disconnect();
+                        checkIfMe();
+                    }
+                }
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    init();
+})();
+(function() {
+    'use strict';
+
+    let chatData = null;
+
+    function addExportButton() {
+        const targetElement = document.querySelector('.F3PyX');
+        if (targetElement && !document.querySelector('.export-btn')) {
+            const exportButton = document.createElement('button');
+            exportButton.className = 'export-btn';
+            exportButton.title = 'Export chat history to a text file. In case it does not work close and reopen the chat.';
+            exportButton.style.width = '30px';
+            exportButton.style.height = '30px';
+            exportButton.style.background = 'url(https://i.imgur.com/hG5QwIl.gif) center center / 16px 16px no-repeat';
+            exportButton.style.border = 'none';
+            exportButton.style.cursor = 'pointer';
+            exportButton.style.position = 'absolute';
+            exportButton.style.top = '50%';
+            exportButton.style.right = '37px';
+            exportButton.style.transform = 'translateY(-50%)';
+            targetElement.style.position = 'relative';
+            targetElement.appendChild(exportButton);
+
+            exportButton.addEventListener('click', function() {
+                exportChatHistory();
+            });
+        }
+    }
+
+    function exportChatHistory() {
+        if (chatData) {
+            chatData.reverse();
+            let formattedChat = chatData.map(message => {
+                const timestamp = new Date(message.created).toLocaleString();
+                return `[ ${timestamp} ] ${message.from_username}: ${message.message}`;
+            }).join('\n');
+            formattedChat = formattedChat.replace(/\n{2,}/g, '\n');
+            const filename = `${chatData[0].to_profile_id}.txt`;
+            const blob = new Blob([formattedChat], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = filename;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        } else {
+            console.error('No chat data found');
+        }
+    }
+    function monitorRequests() {
+        const originalOpen = unsafeWindow.XMLHttpRequest.prototype.open;
+        const originalSend = unsafeWindow.XMLHttpRequest.prototype.send;
+
+        unsafeWindow.XMLHttpRequest.prototype.open = function(method, url) {
+            this._url = url;
+            originalOpen.apply(this, arguments);
+        };
+        unsafeWindow.XMLHttpRequest.prototype.send = function(body) {
+            this.addEventListener('load', function() {
+                if (this._url.includes('/chat/') && this._url.includes('/history/')) {
+                    const urlParts = this._url.split('/');
+                    const selfId = urlParts[4];
+                    const friendId = urlParts[6];
+
+                    console.log('Detected chat history request:', selfId, friendId);
+
+                    if (this.responseType === '' || this.responseType === 'text') {
+                        chatData = JSON.parse(this.responseText).data;
+                    } else if (this.responseType === 'json') {
+                        chatData = this.response.data;
+                    }
+
+                    addExportButton();
+                }
+            });
+
+            originalSend.apply(this, arguments);
+        };
+    }
+
+    monitorRequests();
+
 })();
 
