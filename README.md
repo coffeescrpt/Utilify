@@ -8,7 +8,7 @@ This is the **original Utilify repository**. Any other source than ones consider
 Besides being hosted on **Github** you can also find Utilify on [GreasyFork](https://greasyfork.org/en/scripts/505596>utilify>kogama)
 
 
-# CURRENT FEATURES
+# FEATURES
 
 > Allow Paste
 > 
@@ -63,8 +63,10 @@ Besides being hosted on **Github** you can also find Utilify on [GreasyFork](htt
 >  User&Games Mentions (Removed due issues with nicknames)
 
 
-# EXTERNAL CREDITS
-I want to list special thanks to all the people listed: **AWOI**, **UXNU**,  **TUNA**,  **RAPTOR**,  **FLAVIUS**,  **IDEALISM**,  **SNOWY**,  **DEVORK**.
+# CREDITS
+I want to list special thanks to all the people listed: 
+
+**AWOI**, **UXNU**,  **TUNA**,  **RAPTOR**,  **FLAVIUS**,  **IDEALISM**,  **SNOWY**,  **DEVORK**.
 
 # AWARNESS NOTE
 This script has gotten some users banned which can be troubling for personal and global use. 
