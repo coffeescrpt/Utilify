@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.5.1
+// @version      3.6.5.3
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -10,27 +10,32 @@
 // @grant        GM_addStyle
 // @grant        GM_download
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
+// @downloadURL https://update.greasyfork.org/scripts/505596/Utilify%3A%20KoGaMa.user.js
+// @updateURL https://update.greasyfork.org/scripts/505596/Utilify%3A%20KoGaMa.meta.js
 // ==/UserScript==
 
-// GITHUB REPOSITORY FOR UTILIY: https://github.com/nixospuppy/Utilify
+// GITHUB REPOSITORY FOR UTILITY: https://github.com/unreallain/Utilify
+
 // SECONDARY CREDITS
 
 // EXTERNAL HELP:
-// AWXI
-// UXNU
+// - AWXI
+// - UXNU
 
 // TESTERS:
-// UXNU
-// RAPTOR
-// TUNA
-// FLAVIUS
+// - FLAVIUS
+// - RAPTOR
+// - TUNA
+// - UXNU
 
 // CREDITS+
-// FINDAVATARS IMPLEMENTED THANKS TO 'IDEALISM.'
-// FEEDVIEWERV2 IMPLEMENTED THANKS TO 'SNOWY."
+// - FindAvatars implemented thanks to 'IDEALISM.'
+// - FeedViewerV2 implemented thanks to 'SNOWY.'
 
+// FEATURES:
 // - Allow Pastem
 // - Auto Block Users V2
+// - AutoFBadgeRedeem
 // - Better Titles V2
 // - Compact Menu
 // - Console Warning
@@ -55,6 +60,52 @@
 // - View Feed (requested by Axylee)
 
 
+(function() {
+    function getCoupon(code) {
+        return fetch("https://www.kogama.com/api/coupon/redeem/", {
+            "headers": {
+                "content-type": "application/json",
+            },
+            "body": JSON.stringify({ "code": code }),
+            "method": "POST",
+        });
+    }
+
+    const coupons = ['coolcat', 'fish', 'android', 'michal', 'scary', 'ifollowinstagram', 'banana', 'standalone-plugin-install'];
+
+    function init() {
+        if (window.location.href.includes('kogama.com/coupon/')) {
+            const redeemButton = document.createElement('button');
+            redeemButton.textContent = 'Redeem Coupons';
+            redeemButton.style.position = 'fixed';
+            redeemButton.style.top = '50%';
+            redeemButton.style.left = '50%';
+            redeemButton.style.transform = 'translate(-50%, -50%)';
+            redeemButton.style.zIndex = '999';
+            redeemButton.style.padding = '15px 30px';
+            redeemButton.style.backgroundColor = '#222222';
+            redeemButton.style.color = '#aaaaaa';
+            redeemButton.style.border = 'none';
+            redeemButton.style.borderRadius = '8px';
+            redeemButton.style.fontSize = '16px';
+            redeemButton.style.cursor = 'pointer';
+
+            redeemButton.addEventListener('click', function() {
+                Promise.all(coupons.map(getCoupon))
+                    .then(() => {
+                        window.location.href = 'https://www.kogama.com/profile/me';
+                    })
+                    .catch(() => {
+                        alert('One or more requests failed');
+                    });
+            });
+
+            document.body.appendChild(redeemButton);
+        }
+    }
+
+    init();
+})()
 ;(function() {
     const patterns = {
         bold: /\*\*(.*?)\*\*/g,
