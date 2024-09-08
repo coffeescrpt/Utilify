@@ -17,7 +17,7 @@ Never trust optional sources if you value your privacy.
 <h2>Utilify Contributors</h2>
 <p>
 I want to give <b>huge</b> thank you to everybody who has supported the project since it's beginning as well as helped finding bugs and solutions.<br>
-Not only that but so people have provided me with ideas what to add and tweak for the best results.<br>
+Not only that but so many people have provided me with ideas what to add and tweak for the best results.<br>
 </b>Seriously, thanks to each single one of you.<br> 
 <i>I love you.</i>
 
