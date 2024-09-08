@@ -38,6 +38,6 @@ Not only that but so people have provided me with ideas what to add and tweak fo
 <br><br>
 
 <h2> Utilify's Features</h2>
-<a href="https://github.com/unreallain/Utilify/tree/main/Modules">Entire Utilify Feature List</a>
+<a href="https://github.com/unreallain/Utilify/blob/main/Modules/features.js">Entire Utilify Feature List</a>
 
 </div>
