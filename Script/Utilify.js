@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.5.3
+// @version      3.6.5.7
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -14,50 +14,9 @@
 // @updateURL https://update.greasyfork.org/scripts/505596/Utilify%3A%20KoGaMa.meta.js
 // ==/UserScript==
 
-// GITHUB REPOSITORY FOR UTILITY: https://github.com/unreallain/Utilify
+// VIEW ALL ADDITIONAL INFORMATION ON OFFICIAL REPOSITORY
+// - - > https://github.com/unreallain/Utilify
 
-// SECONDARY CREDITS
-
-// EXTERNAL HELP:
-// - AWXI
-// - UXNU
-
-// TESTERS:
-// - FLAVIUS
-// - RAPTOR
-// - TUNA
-// - UXNU
-
-// CREDITS+
-// - FindAvatars implemented thanks to 'IDEALISM.'
-// - FeedViewerV2 implemented thanks to 'SNOWY.'
-
-// FEATURES:
-// - Allow Pastem
-// - Auto Block Users V2
-// - AutoFBadgeRedeem
-// - Better Titles V2
-// - Compact Menu
-// - Console Warning
-// - Creator Credits
-// - Display ST-notifications for incoming direct messages
-// - Edit Website Gradient V2
-// - Fast Friendslist
-// - Filter friendsbar to access DMs faster
-// - Find User Avatars V2
-// - Fixed profile background lightness V2
-// - Fix HTML syntax for ', >, "
-// - GetRidOfImageStrokes
-// - HeadersInDescription
-// - KoGaMaBuddy emojis
-// - Preview Marketplace Images
-// - PrivacyBlur V2
-// - RememberSafetyNotification
-// - RichText
-// - Steal Description
-// - User Backgrounds V2
-// - User Gradients
-// - View Feed (requested by Axylee)
 
 
 (function() {
@@ -105,6 +64,366 @@
     }
 
     init();
+})()
+;(function() {
+    "use strict";
+    function createElement(tag, attributes, ...children) {
+        const element = document.createElement(tag);
+        for (let key in attributes) {
+            element.setAttribute(key, attributes[key]);
+        }
+        for (let child of children) {
+            if (typeof child === "string") {
+                element.appendChild(document.createTextNode(child));
+            } else {
+                element.appendChild(child);
+            }
+        }
+        return element;
+    }
+    function removeElement(selector) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.remove();
+        }
+    }
+    function createCustomLogin() {
+        const loginButton = document.querySelector("#login-button");
+        if (loginButton && !document.querySelector("#custom-login-button")) {
+            const metaNav = document.querySelector("#meta-nav");
+            if (metaNav) {
+                loginButton.parentElement.remove();
+                const customLoginButton = createElement(
+                    "button",
+                    {
+                        id: "custom-login-button",
+                        class: "custom-login-button",
+                        "aria-label": "Custom Login"
+                    },
+                    "Login"
+                );
+                const signupButton = document.querySelector("#signup-button");
+                metaNav.insertBefore(
+                    createElement("li", { class: "login" }, customLoginButton),
+                    signupButton.parentElement
+                );
+
+                customLoginButton.addEventListener("click", () => {
+                    if (document.querySelector("#custom-login-form")) return;
+
+                    const usernameInput = createElement("input", {
+                        type: "text",
+                        id: "custom-username",
+                        placeholder: "Username",
+                        class: "input-field"
+                    });
+
+                    const passwordInput = createElement("input", {
+                        type: "password",
+                        id: "custom-password",
+                        placeholder: "Password",
+                        class: "input-field"
+                    });
+
+                    const errorDisplay = createElement("div", {
+                        id: "custom-login-error",
+                        class: "error-display"
+                    });
+
+                    const addAccountButton = createElement("button", {
+                        id: "add-account-button",
+                        class: "action-button"
+                    }, "Add Account");
+
+                    const loginButton = createElement("button", {
+                        id: "login-button",
+                        class: "action-button"
+                    }, "Login");
+
+                    const loginForm = createElement(
+                        "div",
+                        {
+                            id: "custom-login-form",
+                            class: "login-form"
+                        },
+                        createElement("button", {
+                            id: "close-login-form",
+                            class: "close-button",
+                            title: "Close"
+                        }, "✕"),
+                        createElement("div", {
+                            id: "last-accounts",
+                            class: "dropdown-container"
+                        }),
+                        usernameInput,
+                        passwordInput,
+                        addAccountButton,
+                        loginButton,
+                        errorDisplay,
+                        createElement("div", {
+                            id: "info-text",
+                            class: "info-text"
+                        }, "If you encounter issues registering while using Utilify, please disable it.")
+                    );
+
+                    document.body.appendChild(loginForm);
+
+                    document.querySelector("#close-login-form").addEventListener("click", () => {
+                        document.querySelector("#custom-login-form").remove();
+                    });
+
+                    addAccountButton.addEventListener("click", () => {
+                        const username = usernameInput.value;
+                        const password = passwordInput.value;
+                        const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
+                        const existingAccountIndex = accounts.findIndex(
+                            acc => acc.username === username
+                        );
+                        if (existingAccountIndex === -1) {
+                            accounts.push({ username, password });
+                            if (accounts.length > 8) accounts.shift(); // 8 - Max account held
+                            localStorage.setItem("accounts", JSON.stringify(accounts));
+                            displayLastAccounts();
+                        }
+                    });
+
+                    loginButton.addEventListener("click", () => {
+                        const username = usernameInput.value;
+                        const password = passwordInput.value;
+
+                        fetch("https://www.kogama.com/auth/login/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ username, password }),
+                            credentials: "include"
+                        })
+                        .then(response => {
+                            if (response.status === 200) {
+                                window.location.href = "https://www.kogama.com/profile/me";
+                            } else {
+                                return response.json();
+                            }
+                        })
+                        .then(data => {
+                            if (data && data.error) {
+                                let errorMessage = "Login failed.";
+                                if (data.error.__all__) {
+                                    const detailedError = data.error.__all__[0];
+                                    if (detailedError.includes("banned")) {
+                                        errorMessage = "Account banned.";
+                                        const remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
+                                        const remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
+                                        errorDisplay.innerHTML = `
+                                            <div>Account banned.</div>
+                                            <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
+                                        `;
+                                        errorDisplay.title = detailedError.split("due to:")[1].split("\n")[0].trim();
+                                    } else {
+                                        errorMessage = "Inappropriate Username or password.";
+                                    }
+                                }
+                                if (!data.error.__all__ || !data.error.__all__[0].includes("banned")) {
+                                    errorDisplay.textContent = errorMessage;
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error:", error);
+                            errorDisplay.style.display = "block";
+                            errorDisplay.textContent = "Network error. Please try again later.";
+                        });
+                    });
+
+                    function displayLastAccounts() {
+                        const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
+                        const lastAccountsDropdown = document.querySelector("#last-accounts");
+                        lastAccountsDropdown.innerHTML = ""; // Clear existing options
+
+                        const dropdown = createElement("select", {
+                            id: "last-accounts-dropdown",
+                            class: "dropdown"
+                        });
+                        const defaultOption = createElement("option", { value: "" }, "Select an account");
+                        dropdown.appendChild(defaultOption);
+
+                        accounts.forEach(account => {
+                            const accountOption = createElement(
+                                "option",
+                                { value: JSON.stringify(account) },
+                                account.username
+                            );
+                            dropdown.appendChild(accountOption);
+                        });
+
+                        dropdown.addEventListener("change", function() {
+                            const selectedAccount = JSON.parse(this.value);
+                            if (selectedAccount) {
+                                const { username, password } = selectedAccount;
+
+                                fetch("https://www.kogama.com/auth/login/", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({ username, password }),
+                                    credentials: "include"
+                                })
+                                .then(response => {
+                                    if (response.status === 200) {
+                                        window.location.href = "https://www.kogama.com/profile/me";
+                                    } else {
+                                        return response.json();
+                                    }
+                                })
+                                .then(data => {
+                                    if (data && data.error) {
+                                        let errorMessage = "Login failed.";
+                                        if (data.error.__all__) {
+                                            const detailedError = data.error.__all__[0];
+                                            if (detailedError.includes("banned")) {
+                                                errorMessage = "Account banned.";
+                                                const remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
+                                                const remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
+                                                errorDisplay.innerHTML = `
+                                                    <div>Account banned.</div>
+                                                    <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
+                                                `;
+                                                errorDisplay.title = detailedError.split("due to:")[1].split("\n")[0].trim();
+                                            } else {
+                                                errorMessage = "Inappropriate Username or password.";
+                                            }
+                                        }
+                                        if (!data.error.__all__ || !data.error.__all__[0].includes("banned")) {
+                                            errorDisplay.textContent = errorMessage;
+                                        }
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error("Error:", error);
+                                    errorDisplay.style.display = "block";
+                                    errorDisplay.textContent = "Network error. Please try again later.";
+                                });
+                            }
+                        });
+
+                        lastAccountsDropdown.appendChild(dropdown);
+                    }
+                    displayLastAccounts();
+                });
+            }
+        }
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    const throttledCreateCustomLogin = debounce(createCustomLogin, 210);
+
+    const observer = new MutationObserver(mutationsList => {
+        for (let mutation of mutationsList) {
+            if (mutation.type === "childList") {
+                throttledCreateCustomLogin();
+            }
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Add CSS styles
+    GM_addStyle(`
+        .custom-login-button {
+            background-color: #4a148c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 18px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        .custom-login-button:hover {
+            background-color: #6a1b9a;
+        }
+        .login-form {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a2e;
+            padding: 20px;
+            border: 1px solid #3f3f5f;
+            border-radius: 12px;
+            width: 450px;
+            z-index: 9999;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .input-field {
+            background: #2b2b3a;
+            color: #e0e0e0;
+            border: 1px solid #3f3f5f;
+            padding: 12px;
+            margin-bottom: 12px;
+            width: 100%;
+            border-radius: 6px;
+        }
+        .action-button {
+            background-color: #6a1b9a;
+            color: white;
+            border: none;
+            padding: 12px;
+            cursor: pointer;
+            font-size: 18px;
+            border-radius: 6px;
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .action-button:hover {
+            background-color: #8e24aa;
+        }
+        .close-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .error-display {
+            color: #ff4d4d;
+            font-size: 16px;
+            margin-top: 12px;
+        }
+        .info-text {
+            color: #b0bec5;
+            font-size: 16px;
+            margin-top: 12px;
+            text-align: center;
+        }
+        .dropdown-container {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .dropdown {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3f3f5f;
+            background: #2b2b3a;
+            color: #e0e0e0;
+            border-radius: 6px;
+        }
+    `);
 })()
 ;(function() {
     const patterns = {
@@ -3057,9 +3376,9 @@ Have a wonderful day, user.
 })()
 
 ;(function () {
-	"use strict"
+    "use strict"
 
-	GM_addStyle(`
+    GM_addStyle(`
         #mobile-page #error-404-page, #mobile-page #error-500-page, #mobile-page #error-disconnected-page { display: none; }
         ._3TORb { background: rgba(0, 0, 0, .14); }
         .MuiPaper-root { background-color: rgba(0, 0, 13, 0.14) !important;
@@ -3070,208 +3389,238 @@ Have a wonderful day, user.
         ::-webkit-scrollbar { width: 1px; }
     `)
 
-	applyGradientToElement(getSavedGradientSettings())
+    applyGradientToElement(getSavedGradientSettings())
 
-	if (window.location.href.endsWith("/gradient")) {
-		const savedGradient = getSavedGradientSettings()
-		let currentGradient = savedGradient
+    if (window.location.href.endsWith("/gradient")) {
+        const savedGradient = getSavedGradientSettings()
+        let currentGradient = savedGradient
 
-		const editorContainer = document.createElement("div")
-		editorContainer.id = "gradient-editor"
-		editorContainer.style.position = "fixed"
-		editorContainer.style.top = "50%"
-		editorContainer.style.left = "50%"
-		editorContainer.style.transform = "translate(-50%, -50%)"
-		editorContainer.style.zIndex = "10000"
-		editorContainer.style.background = "rgba(0, 0, 0, 0.4)"
-		editorContainer.style.backdropFilter = "blur(5px)"
-		editorContainer.style.borderRadius = "13px"
-		editorContainer.style.padding = "20px"
-		editorContainer.style.boxShadow = "0 0 4px black"
-		document.body.appendChild(editorContainer)
+        const editorContainer = document.createElement("div")
+        editorContainer.id = "gradient-editor"
+        editorContainer.style.position = "fixed"
+        editorContainer.style.top = "50%"
+        editorContainer.style.left = "50%"
+        editorContainer.style.transform = "translate(-50%, -50%)"
+        editorContainer.style.zIndex = "10000"
+        editorContainer.style.background = "rgba(0, 0, 0, 0.4)"
+        editorContainer.style.backdropFilter = "blur(5px)"
+        editorContainer.style.borderRadius = "13px"
+        editorContainer.style.padding = "20px"
+        editorContainer.style.boxShadow = "0 0 4px black"
+        document.body.appendChild(editorContainer)
 
-		const fixButton = createButton("Fix", fixGradientSettings)
-		const copyButton = createButton("Copy Current Gradient", scrapeGradient)
-		const startColorInput = createColorPicker(
-			"#ff0000",
-			"Start Color",
-			updateGradient,
-		)
-		const endColorInput = createColorPicker(
-			"#00ff00",
-			"End Color",
-			updateGradient,
-		)
-		const degreeInput = createNumberInput("45", "Angle", updateGradient)
-		const lengthInput = createRangeInput("100", "Length", updateGradient)
-		const customGradientInput = createTextInput(
-			"Your custom gradient...",
-			updateCustomGradient,
-		)
-
-		editorContainer.appendChild(fixButton)
-		editorContainer.appendChild(copyButton)
-		editorContainer.appendChild(startColorInput)
-		editorContainer.appendChild(endColorInput)
-		editorContainer.appendChild(degreeInput)
-		editorContainer.appendChild(lengthInput)
-		editorContainer.appendChild(customGradientInput)
-
-		if (savedGradient) {
-			const [startColor, endColor, degree, length] =
-				parseGradient(savedGradient)
-			startColorInput.querySelector("input").value = startColor
-			endColorInput.querySelector("input").value = endColor
-			degreeInput.querySelector("input").value = degree
-			lengthInput.querySelector("input").value = length
-		}
-
-		function fixGradientSettings() {
-			localStorage.removeItem("kogamaGradient")
-			window.location.reload()
-		}
-
-		function createButton(text, onClick) {
-			const button = document.createElement("button")
-			button.textContent = text
-			button.addEventListener("click", onClick)
-			button.style.marginTop = "10px"
-			button.style.marginRight = "10px"
-			button.style.padding = "5px 10px"
-			button.style.borderRadius = "20px"
-			button.style.bottom = "8px"
-			button.style.position = "relative"
-			button.style.backgroundColor = "rgba(0, 0, 0, 0.5)"
-			button.style.color = "#fff"
-			button.style.boxShadow = "0 0 10px rgba(255, 255, 255, 0.2)"
-			return button
-		}
-
-		function createColorPicker(value, label, onChange) {
-			const container = createInputContainer(label)
-			const input = document.createElement("input")
-			input.type = "color"
-			input.value = value
-			input.addEventListener("input", onChange)
-			container.appendChild(input)
-			return container
-		}
-
-		function createNumberInput(value, label, onChange) {
-			const container = createInputContainer(label)
-			const input = document.createElement("input")
-			input.type = "number"
-			input.value = value
-			input.addEventListener("input", onChange)
-			container.appendChild(input)
-			return container
-		}
-
-		function createRangeInput(value, label, onChange) {
-			const container = createInputContainer(label)
-			const input = document.createElement("input")
-			input.type = "range"
-			input.min = "0"
-			input.max = "100"
-			input.value = value
-			input.addEventListener("input", onChange)
-			container.appendChild(input)
-			return container
-		}
-
-		function createTextInput(placeholder, onChange) {
-			const input = document.createElement("input")
-			input.type = "text"
-			input.placeholder = placeholder
-			input.addEventListener("input", onChange)
-			input.style.marginTop = "10px"
-			input.style.padding = "5px"
-			input.style.borderRadius = "10px"
-			input.style.border = "1px solid rgba(255, 255, 255, 0.3)"
-			input.style.backgroundColor = "rgba(0, 0, 0, 0.5)"
-			input.style.color = "#fff"
-			return input
-		}
-
-		function updateGradient() {
-			const startColor = startColorInput.querySelector("input").value
-			const endColor = endColorInput.querySelector("input").value
-			const degree = degreeInput.querySelector("input").value
-			const length = lengthInput.querySelector("input").value
-
-			const gradient = `linear-gradient(${degree}deg, ${startColor}, ${endColor} ${length}%)`
-
-			applyGradientToElement(gradient)
-			currentGradient = gradient
-			saveGradientSettings(gradient)
-		}
-
-		function updateCustomGradient() {
-			const customGradientValue = customGradientInput.value.trim()
-			if (validateGradient(customGradientValue)) {
-				applyGradientToElement(customGradientValue)
-				currentGradient = customGradientValue
-				saveGradientSettings(customGradientValue)
-			}
-		}
-
-		function scrapeGradient() {
-			navigator.clipboard
-				.writeText(currentGradient)
-				.then(() => alert("Gradient copied to clipboard!"))
-				.catch(err => console.error("Failed to copy gradient: ", err))
-		}
-
-		function createInputContainer(label) {
-			const container = document.createElement("div")
-			container.style.marginBottom = "20px"
-			container.innerHTML = `<strong>${label}:</strong>`
-			return container
-		}
-	}
-
-function applyGradientToElement(gradient) {
-    // Select the base element and elements with seasonal/error classes
-    const elements = [
-        document.querySelector("body#root-page-mobile"),
-        ...["spring", "summer", "autumn", "winter", "error"].map(season =>
-            document.querySelector(`body#root-page-mobile.${season}`)
+        const fixButton = createButton("Fix", fixGradientSettings)
+        const copyButton = createButton("Copy Current Gradient", scrapeGradient)
+        const startColorInput = createColorInput(
+            "#ff0000",
+            "Start Color",
+            updateGradient,
         )
-    ];
+        const endColorInput = createColorInput(
+            "#00ff00",
+            "End Color",
+            updateGradient,
+        )
+        const degreeInput = createNumberInput("45", "Angle", updateGradient)
+        const lengthInput = createRangeInput("100", "Length", updateGradient)
+        const customGradientInput = createTextInput(
+            "Your custom gradient...",
+            updateCustomGradient,
+        )
 
-    elements.forEach(el => {
-        if (el) {
-            el.style.backgroundImage = gradient;
+        editorContainer.appendChild(fixButton)
+        editorContainer.appendChild(copyButton)
+        editorContainer.appendChild(startColorInput)
+        editorContainer.appendChild(endColorInput)
+        editorContainer.appendChild(degreeInput)
+        editorContainer.appendChild(lengthInput)
+        editorContainer.appendChild(customGradientInput)
+
+        if (savedGradient) {
+            const [startColor, endColor, degree, length] =
+                parseGradient(savedGradient)
+            startColorInput.querySelector("input").value = startColor
+            endColorInput.querySelector("input").value = endColor
+            degreeInput.querySelector("input").value = degree
+            lengthInput.querySelector("input").value = length
+        }
+
+        function fixGradientSettings() {
+            localStorage.removeItem("kogamaGradient")
+            window.location.reload()
+        }
+
+        function createButton(text, onClick) {
+            const button = document.createElement("button")
+            button.textContent = text
+            button.addEventListener("click", onClick)
+            button.style.marginTop = "10px"
+            button.style.marginRight = "10px"
+            button.style.padding = "5px 10px"
+            button.style.borderRadius = "20px"
+            button.style.bottom = "8px"
+            button.style.position = "relative"
+            button.style.backgroundColor = "rgba(0, 0, 0, 0.5)"
+            button.style.color = "#fff"
+            button.style.boxShadow = "0 0 10px rgba(255, 255, 255, 0.2)"
+            return button
+        }
+
+ function createColorInput(value, label, onChange) {
+    const container = createInputContainer(label);
+
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = value;
+    colorInput.style.marginRight = "10px";
+
+    const hexInput = document.createElement("input");
+    hexInput.type = "text";
+    hexInput.value = value;
+    hexInput.maxLength = 7;
+    hexInput.placeholder = "#000000";
+    hexInput.style.width = "80px";
+
+    // Sync color picker with pasted hex
+    hexInput.addEventListener("input", function () {
+        let hexValue = hexInput.value.trim();
+        // Add '#' if it's missing
+        if (!hexValue.startsWith("#")) {
+            hexValue = "#" + hexValue;
+        }
+        if (/^#[0-9A-F]{6}$/i.test(hexValue)) {
+            colorInput.value = hexValue;
+            onChange();
         }
     });
+
+    // Sync hex with color picker changes
+    colorInput.addEventListener("input", function () {
+        hexInput.value = colorInput.value;
+        onChange();
+    });
+
+    container.appendChild(colorInput);
+    container.appendChild(hexInput);
+
+    return container;
 }
+        function createNumberInput(value, label, onChange) {
+            const container = createInputContainer(label)
+            const input = document.createElement("input")
+            input.type = "number"
+            input.value = value
+            input.addEventListener("input", onChange)
+            container.appendChild(input)
+            return container
+        }
 
-	function saveGradientSettings(gradient) {
-		localStorage.setItem("kogamaGradient", gradient)
-	}
+        function createRangeInput(value, label, onChange) {
+            const container = createInputContainer(label)
+            const input = document.createElement("input")
+            input.type = "range"
+            input.min = "0"
+            input.max = "100"
+            input.value = value
+            input.addEventListener("input", onChange)
+            container.appendChild(input)
+            return container
+        }
 
-	function getSavedGradientSettings() {
-		return localStorage.getItem("kogamaGradient")
-	}
+        function createTextInput(placeholder, onChange) {
+            const input = document.createElement("input")
+            input.type = "text"
+            input.placeholder = placeholder
+            input.addEventListener("input", onChange)
+            input.style.marginTop = "10px"
+            input.style.padding = "5px"
+            input.style.borderRadius = "10px"
+            input.style.border = "1px solid rgba(255, 255, 255, 0.3)"
+            input.style.backgroundColor = "rgba(0, 0, 0, 0.5)"
+            input.style.color = "#fff"
+            return input
+        }
 
-	function parseGradient(gradient) {
-		const regex = /linear-gradient\((\d+)deg,\s*([^,]+),\s*([^)]+)\s+(\d+)%\)/
-		const matches = gradient.match(regex)
+        function updateGradient() {
+            const startColor = startColorInput.querySelector("input[type=color]").value
+            const endColor = endColorInput.querySelector("input[type=color]").value
+            const degree = degreeInput.querySelector("input").value
+            const length = lengthInput.querySelector("input").value
 
-		if (matches) {
-			const [, degree, startColor, endColor, length] = matches
-			return [startColor, endColor, degree, length]
-		}
+            const gradient = `linear-gradient(${degree}deg, ${startColor}, ${endColor} ${length}%)`
 
-		return []
-	}
+            applyGradientToElement(gradient)
+            currentGradient = gradient
+            saveGradientSettings(gradient)
+        }
 
-	function validateGradient(gradient) {
-		const regex =
-			/^linear-gradient\(\d+deg,\s*(#(?:[0-9a-fA-F]{3}){1,2}|rgb\(\d+\s*,\s*\d+\s*,\s*\d+\))\s*,\s*(#(?:[0-9a-fA-F]{3}){1,2}|rgb\(\d+\s*,\s*\d+\s*,\s*\d+\))\s+\d+%\)$/
-		return regex.test(gradient)
-	}
+        function updateCustomGradient() {
+            const customGradientValue = customGradientInput.value.trim()
+            if (validateGradient(customGradientValue)) {
+                applyGradientToElement(customGradientValue)
+                currentGradient = customGradientValue
+                saveGradientSettings(customGradientValue)
+            }
+        }
+
+        function scrapeGradient() {
+            navigator.clipboard
+                .writeText(currentGradient)
+                .then(() => alert("Gradient copied to clipboard!"))
+                .catch(err => console.error("Failed to copy gradient: ", err))
+        }
+
+        function createInputContainer(label) {
+            const container = document.createElement("div")
+            container.style.marginBottom = "20px"
+            container.innerHTML = `<strong>${label}:</strong>`
+            return container
+        }
+    }
+
+    function applyGradientToElement(gradient) {
+        const elements = [
+            document.querySelector("body#root-page-mobile"),
+            ...["spring", "summer", "autumn", "winter", "error"].map(season =>
+                document.querySelector(`body#root-page-mobile.${season}`)
+            )
+        ]
+
+        elements.forEach(el => {
+            if (el) {
+                el.style.backgroundImage = gradient
+            }
+        })
+    }
+
+    function saveGradientSettings(gradient) {
+        localStorage.setItem("kogamaGradient", gradient)
+    }
+
+    function getSavedGradientSettings() {
+        return localStorage.getItem("kogamaGradient")
+    }
+
+    function parseGradient(gradient) {
+        const regex = /linear-gradient\((\d+)deg,\s*([^,]+),\s*([^)]+)\s+(\d+)%\)/
+        const matches = gradient.match(regex)
+
+        if (matches) {
+            const [, degree, startColor, endColor, length] = matches
+            return [startColor, endColor, degree, length]
+        }
+
+        return []
+    }
+
+    function validateGradient(gradient) {
+        const regex =
+            /^linear-gradient\(\d+deg,\s*(#(?:[0-9a-fA-F]{3}){1,2}),\s*(#(?:[0-9a-fA-F]{3}){1,2})\s+\d{1,3}%\)$/
+        return regex.test(gradient)
+    }
 })()
+
+
 
 
 
@@ -3777,303 +4126,6 @@ function applyGradientToElement(gradient) {
     }
 
     InsertBeforeLoad();
-})();
-
-;(function () {
-    "use strict";
-
-    function createElement(tag, attributes, ...children) {
-        const element = document.createElement(tag);
-        for (let key in attributes) {
-            element.setAttribute(key, attributes[key]);
-        }
-        for (let child of children) {
-            if (typeof child === "string") {
-                element.appendChild(document.createTextNode(child));
-            } else {
-                element.appendChild(child);
-            }
-        }
-        return element;
-    }
-
-    function removeElement(selector) {
-        const element = document.querySelector(selector);
-        if (element) {
-            element.remove();
-        }
-    }
-
-    const observer = new MutationObserver(mutationsList => {
-        for (let mutation of mutationsList) {
-            if (mutation.type === "childList") {
-                removeElement("#login-button");
-                removeElement("#react-ingame-modal");
-            }
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    function checkAndAddCustomLogin() {
-        const loginButton = document.querySelector("#login-button");
-        if (loginButton) {
-            const metaNav = document.querySelector("#meta-nav");
-            if (metaNav) {
-                loginButton.parentElement.remove();
-                const customLoginButton = createElement(
-                    "button",
-                    {
-                        "id": "custom-login-button",
-                        "class": "login-button text",
-                        "aria-label": "Custom Login",
-                    },
-                    "Login"
-                );
-                const signupButton = document.querySelector("#signup-button");
-                metaNav.insertBefore(
-                    createElement("li", { class: "login" }, customLoginButton),
-                    signupButton.parentElement
-                );
-                customLoginButton.addEventListener("click", () => {
-                    if (document.querySelector("#custom-login-form")) return;
-
-                    const usernameInput = createElement("input", {
-                        type: "text",
-                        id: "custom-username",
-                        placeholder: "Username",
-                        style:
-                            "background: #444; color: #fff; border: 1px solid #555; padding: 10px; margin-bottom: 10px; width: 80%;",
-                    });
-
-                    const passwordInput = createElement("input", {
-                        type: "password",
-                        id: "custom-password",
-                        placeholder: "Password",
-                        style:
-                            "background: #444; color: #fff; border: 1px solid #555; padding: 10px; margin-bottom: 10px; width: 80%;",
-                    });
-
-                    const errorDisplay = createElement("div", {
-                        id: "custom-login-error",
-                        style: "color: red; margin-top: 10px; display: none;",
-                    });
-
-                    const loginForm = createElement(
-                        "div",
-                        {
-                            id: "custom-login-form",
-                            style:
-                                "position: fixed; top: 50%; left: 50%; z-index: 999; transform: translate(-50%, -50%); background: #333; padding: 20px; border: 1px solid #555; border-radius: 8px; width: 400px; text-align: center; display: flex; flex-direction: column;",
-                        },
-                        createElement("div", {
-                            id: "last-accounts",
-                            style:
-                                "color: #fff; margin-bottom: 10px;",
-                        }),
-                        usernameInput,
-                        passwordInput,
-                        createElement(
-                            "button",
-                            {
-                                id: "custom-login-submit",
-                                class: "login-button text",
-                                style:
-                                    "background: #555; color: #fff; border: none; padding: 10px 20px; cursor: pointer;",
-                            },
-                            "Login"
-                        ),
-                        errorDisplay,
-                        createElement("div", {
-                            id: "info-text",
-                            style: "font-size: 11px; color: lightgray; margin-top: 15px; white-space: pre-wrap;",
-                        }, "If you wish to register, disable Utilify.\nWe're sorry for the inconvenience.")
-                    );
-
-                    document.body.appendChild(loginForm);
-
-                    document.addEventListener("click", event => {
-                        const form = document.querySelector("#custom-login-form");
-                        if (
-                            form &&
-                            !form.contains(event.target) &&
-                            event.target !== customLoginButton
-                        ) {
-                            form.remove();
-                        }
-                    });
-
-                    document
-                        .querySelector("#custom-login-submit")
-                        .addEventListener("click", () => {
-                            const username = usernameInput.value;
-                            const password = passwordInput.value;
-                            const accounts =
-                                JSON.parse(localStorage.getItem("accounts")) || [];
-                            const existingAccountIndex = accounts.findIndex(
-                                acc => acc.username === username && acc.password === password
-                            );
-                            if (existingAccountIndex !== -1) {
-                                const [existingAccount] = accounts.splice(
-                                    existingAccountIndex,
-                                    1
-                                );
-                                accounts.push(existingAccount);
-                            } else {
-                                const duplicateIndex = accounts.findIndex(
-                                    acc => acc.username === username
-                                );
-                                if (duplicateIndex !== -1) {
-                                    accounts.splice(duplicateIndex, 1);
-                                }
-                                accounts.push({ username, password });
-                                if (accounts.length > 4) accounts.shift();
-                                localStorage.setItem("accounts", JSON.stringify(accounts));
-                                displayLastAccounts();
-                            }
-                            fetch("https://www.kogama.com/auth/login/", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({ username, password }),
-                                credentials: "include",
-                            })
-                                .then(response => {
-                                    if (response.status === 200) {
-                                        window.location.href = "https://www.kogama.com/profile/me";
-                                    } else {
-                                        return response.json();
-                                    }
-                                })
-                                .then(data => {
-                                    if (data && data.error) {
-                                        errorDisplay.style.display = "block";
-                                        let errorMessage = "Login failed.";
-                                        if (data.error.__all__) {
-                                            let detailedError = data.error.__all__[0];
-                                            if (detailedError.includes("banned")) {
-                                                errorMessage = "Account banned.";
-                                                let reason = detailedError.split("due to:")[1].split("\n")[0].trim();
-                                                let remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
-                                                let remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
-
-                                                errorDisplay.innerHTML = `
-                                                    <div>Account banned.</div>
-                                                    <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
-                                                `;
-                                                errorDisplay.title = reason;
-                                            } else {
-                                                errorMessage = "Inappropriate Username or password.";
-                                            }
-                                        }
-                                        if (!data.error.__all__ || !data.error.__all__[0].includes("banned")) {
-                                            errorDisplay.textContent = errorMessage;
-                                        }
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error("Error:", error);
-                                    errorDisplay.style.display = "block";
-                                    errorDisplay.textContent = "Network error. Please try again later.";
-                                });
-                        });
-
-                    function displayLastAccounts() {
-                        const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-                        const lastAccountsDropdown = createElement(
-                            "select",
-                            {
-                                id: "last-accounts-dropdown",
-                                style: "width: 100%; margin-bottom: 10px; background: #444; color: #fff; border: 1px solid #555; padding: 15px; border-radius: 5px; cursor: pointer; height: 40px;",
-                            }
-                        );
-                        const defaultOption = createElement(
-                            "option",
-                            { value: "" },
-                            "Select an account"
-                        );
-                        lastAccountsDropdown.appendChild(defaultOption);
-                        accounts.forEach(account => {
-                            const accountOption = createElement(
-                                "option",
-                                { value: JSON.stringify(account) },
-                                `${account.username}`
-                            );
-                            lastAccountsDropdown.appendChild(accountOption);
-                        });
-
-                        lastAccountsDropdown.addEventListener("change", function () {
-                            const selectedAccount = JSON.parse(this.value);
-                            if (selectedAccount) {
-                                const { username, password } = selectedAccount;
-
-                                fetch("https://www.kogama.com/auth/login/", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({ username, password }),
-                                    credentials: "include",
-                                })
-                                .then(response => {
-                                    if (response.status === 200) {
-                                        window.location.href = "https://www.kogama.com/profile/me";
-                                    } else {
-                                        return response.json();
-                                    }
-                                })
-                                .then(data => {
-                                    if (data && data.error) {
-                                        errorDisplay.style.display = "block";
-                                        let errorMessage = "Login failed.";
-                                        if (data.error.__all__) {
-                                            let detailedError = data.error.__all__[0];
-                                            if (detailedError.includes("banned")) {
-                                                errorMessage = "Account banned.";
-                                                let reason = detailedError.split("due to:")[1].split("\n")[0].trim();
-                                                let remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
-                                                let remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
-
-                                                errorDisplay.innerHTML = `
-                                                    <div>Account banned.</div>
-                                                    <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
-                                                `;
-                                                errorDisplay.title = reason;
-                                            } else {
-                                                errorMessage = "Inappropriate Username or password.";
-                                            }
-                                        }
-                                        if (!data.error.__all__ || !data.error.__all__[0].includes("banned")) {
-                                            errorDisplay.textContent = errorMessage;
-                                        }
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error("Error:", error);
-                                    errorDisplay.style.display = "block";
-                                    errorDisplay.textContent = "Network error. Please try again later.";
-                                });
-                            }
-                        });
-
-                        document.querySelector("#last-accounts").appendChild(lastAccountsDropdown);
-                    }
-                    displayLastAccounts();
-                });
-            }
-        }
-    }
-
-    const loginObserver = new MutationObserver(mutationsList => {
-        for (let mutation of mutationsList) {
-            if (mutation.type === "childList") {
-                checkAndAddCustomLogin();
-            }
-        }
-    });
-
-    loginObserver.observe(document.body, { childList: true, subtree: true });
-    checkAndAddCustomLogin();
 })();
 
 function removeElementsByClass(className) {
