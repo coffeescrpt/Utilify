@@ -7,8 +7,11 @@
 <p>
 Utilify is an tampermonkey addon meant to port as much <b>KoGaBuddy</b> features as possible into a globally accesible format in tampermonkey.<br>
 Not only I do my best to recreate functionality of KoGaMaBuddy but also add my own tweaks and adjustements for your complete comfort.<br><br>
-
+This script requires you to install javascript executor<br>
 </p>
+
+[<img src="Modules/img/tmonkey.png" width="200"/>](https://www.tampermonkey.net/) <br>
+
 <br>
 
 > [!NOTE]
@@ -42,7 +45,6 @@ Not only I do my best to recreate functionality of KoGaMaBuddy but also add my o
 > Please remember to stay safe and absolutely never try scripts that you don't understand or don't know origin of.<br>
 > The only <b>safe place</b> to actually get Utilify from is only <a href="https://github.com/unreallain/Utilify/">this github respository</a>.<br>
 > Due previously mentioned issue Utilify is only available on github.<br>
-> Never trust optional sources if you value your privacy.
-> 
+> Never trust optional sources if you value your privacy.<br>
 > [<img src="Modules/img/features.png" width="200"/>](https://github.com/unreallain/Utilify/blob/main/Modules/features.json) <br>
 > [<img src="Modules/img/download.png" width="200"/>](https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js) 
