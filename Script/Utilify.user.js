@@ -10,12 +10,11 @@
 // @grant        GM_addStyle
 // @grant        GM_download
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
-// @downloadURL https://update.greasyfork.org/scripts/505596/Utilify%3A%20KoGaMa.user.js
-// @updateURL https://update.greasyfork.org/scripts/505596/Utilify%3A%20KoGaMa.meta.js
 // ==/UserScript==
 
 // VIEW ALL ADDITIONAL INFORMATION ON OFFICIAL REPOSITORY
-// - - > https://github.com/unreallain/Utilify
+// - - > https://github.com/unreallain/Utilify < - - -
+//  WILL NOT BE PUT ON GREASYFORK EVER AGAIN
 
 
 
