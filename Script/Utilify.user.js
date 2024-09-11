@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.5.7
+// @version      3.6.6
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -63,6 +63,89 @@
     }
 
     init();
+})()
+;
+(function() {
+    'use strict';
+
+    function getCurrentVersion() {
+        return GM_info.script.version;
+    }
+
+    function showUpdateNotification(latestVersion) {
+        const updateDiv = document.createElement('div');
+        updateDiv.id = 'update-notification';
+        updateDiv.style.position = 'fixed';
+        updateDiv.style.top = '-100px'
+        updateDiv.style.left = '50%';
+        updateDiv.style.transform = 'translateX(-50%)';
+        updateDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        updateDiv.style.color = 'white';
+        updateDiv.style.borderRadius = '8px';
+        updateDiv.style.padding = '15px';
+        updateDiv.style.boxShadow = '0px 4px 8px rgba(0,0,0,0.5)';
+        updateDiv.style.zIndex = '9999';
+        updateDiv.style.textAlign = 'center';
+        updateDiv.style.transition = 'top 0.5s ease-in-out';
+        updateDiv.style.fontFamily = 'Arial, sans-serif';
+        updateDiv.style.fontSize = '16px';
+
+        const updateMessage = document.createElement('p');
+        updateMessage.textContent = `Update available! Newest version is `;
+        updateDiv.appendChild(updateMessage);
+
+        const versionLink = document.createElement('a');
+        versionLink.href = 'https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js';
+        versionLink.textContent = latestVersion;
+        versionLink.style.color = '#1E90FF';
+        versionLink.style.textDecoration = 'underline';
+        updateMessage.appendChild(versionLink);
+
+        document.body.appendChild(updateDiv);
+
+        setTimeout(() => {
+            updateDiv.style.top = '0';
+        }, 100);
+
+        setTimeout(() => {
+            updateDiv.style.top = '-100px';
+            setTimeout(() => {
+                document.body.removeChild(updateDiv);
+            }, 500);
+        }, 7000);
+    }
+
+    function checkForUpdate() {
+        const githubAPIURL = 'https://api.github.com/repos/unreallain/Utilify/contents/Script/Utilify.user.js';
+
+        fetch(githubAPIURL, {
+            headers: {
+                'Accept': 'application/vnd.github.v3.raw'
+            }
+        })
+        .then(response => response.text())
+        .then(data => {
+            const latestVersionMatch = data.match(/\/\/\s*@version\s+([0-9.]+)/);
+            if (latestVersionMatch) {
+                const latestVersion = latestVersionMatch[1];
+                const currentVersion = getCurrentVersion();
+
+                console.log(`Local Version: ${currentVersion}`);
+                console.log(`Repository Version: ${latestVersion}`);
+
+                if (latestVersion !== currentVersion) {
+                    showUpdateNotification(latestVersion);
+                } else {
+                    console.log(`No update needed: Both versions are ${currentVersion}`);
+                }
+            } else {
+                console.error("Unable to find the version in the fetched script.");
+            }
+        })
+        .catch(err => console.error("Error fetching the script:", err));
+    }
+
+    checkForUpdate();
 })()
 ;(function() {
     "use strict";
