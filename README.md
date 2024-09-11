@@ -39,8 +39,7 @@ This script requires you to install javascript executor<br>
 
 > [!IMPORTANT]  
 > <h2> Features & Installation</h2>
-> <a href="https://github.com/unreallain/Utilify/blob/main/Modules/features.json">Entire Utilify Feature List</a>
->
+> 
 > Please remember to stay safe and absolutely never try scripts that you don't understand or don't know origin of.<br>
 > The only <b>safe place</b> to actually get Utilify from is only <a href="https://github.com/unreallain/Utilify/">this github respository</a>.<br>
 > Due previously mentioned issue Utilify is only available on github.<br>
