@@ -30,11 +30,10 @@ This script requires you to install javascript executor<br>
 > [!CAUTION]
 > <h2>Read Before Using</h2>
 > <p>
->  Around 1st October I as well as my friends have gotten banned for a lot of reasons regarding <i>cheating</i> even if Utilify was the only thing used.<br>
->  Take it as a warning that despite what this script offers it can bring damage to your account.<br>
->   Please consider it carefully before even trying to install Utilify.<br><br>
-> After contacting a couple people that have better connections with administration Utilify,<br> apparently contains nothing that should trigger anti-cheat however it still got us banned.<br><br>
-> Please take it as a <b> SOLID WARNING </b> regarding your account. I want to create things that ease your experience, not demolish it.
+>  A lot of my friends have been banned and flagged for alleged cheating when using Utilify.<br>
+> This should be considered a warning about usage of scripts and extensions for the website, no matter what they offer they can bring consequences.
+> <b>STAY SAFE</b><br>
+> <img src="Modules/img/shouldbefine.png"> <br>
 > </p>
 <br><br>
 
