@@ -5,12 +5,10 @@
 
 <h2>About Utilify</h2>
 <p>
-Utilify is an tampermonkey addon meant to port as much <b>KoGaBuddy</b> features as possible into a globally accesible format in tampermonkey.<br>
-Not only I do my best to recreate functionality of KoGaMaBuddy but also add my own tweaks and adjustements for your complete comfort.<br><br>
-This script requires you to install javascript executor<br>
+Utilify is a addon written in javascript that hopes to make features of KoGaMaBuddy as accessible as only possible to the general public.<br>
+On top of porting KoGaMaBuddy's features it also adds countless new and never-seen before adjustments to boost your experience.
 </p>
 
-[<img src="Modules/img/tmonkey.png" width="200"/>](https://www.tampermonkey.net/) <br>
 
 <br>
 
@@ -35,7 +33,11 @@ This script requires you to install javascript executor<br>
 > <b>STAY SAFE</b><br>
 > <img src="Modules/img/shouldbefine.png"> <br>
 > </p>
->  I do not have an actual permission to use this screenshot: If you are not comfortable with me using it please let me know.
+>  I do not have an actual permission to use this screenshot: If you are not comfortable with me using it please let me know. <br>
+> <br>
+>
+> [<img src="Modules/img/tmonk.png" width="260"/>](https://www.tampermonkey.net/) <br>
+
 <br><br>
 
 > [!IMPORTANT]  
