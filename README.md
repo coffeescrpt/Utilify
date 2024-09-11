@@ -35,6 +35,7 @@ This script requires you to install javascript executor<br>
 > <b>STAY SAFE</b><br>
 > <img src="Modules/img/shouldbefine.png"> <br>
 > </p>
+>  I do not have an actual permission to use this screenshot: If you are not comfortable with me using it please let me know.
 <br><br>
 
 > [!IMPORTANT]  
