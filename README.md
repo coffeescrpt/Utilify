@@ -17,8 +17,8 @@ Not only I do my best to recreate functionality of KoGaMaBuddy but also add my o
 > I want to give <b>huge</b> thank you to everybody who has supported the project since it's beginning as well as helped finding bugs and solutions.<br>
 > Not only that but so many people have provided me with ideas what to add and tweak for the best results.<br>
 > </b>Seriously, thanks to each single one of you.<br> 
-> <i>I love you.</i>
-> <b> Awoi </b>, <b>Sorry</b>, <b>Raptor</b>, <b>Flavius</b>, <b>Tuna</b>, <b>Snowy</b>, <b>Idealism</b> and <b>Devorkk</b><br>
+> <i>I love you.</i><br>
+> <b> Awoi </b>, <b>Sorry</b>, <b>Raptor</b>, <b>Flavius</b>, <b>Tuna</b>, <b>Snowy</b>, <b>Idealism</b> and <b>Devorkk</b><br><br>
 > <i> All of you are wonderful</i>
   
 </p>
@@ -40,6 +40,7 @@ Not only I do my best to recreate functionality of KoGaMaBuddy but also add my o
 > <a href="https://github.com/unreallain/Utilify/blob/main/Modules/features.json">Entire Utilify Feature List</a>
 >
 > Please remember to stay safe and absolutely never try scripts that you don't understand or don't know origin of.<br>
-> The only <b>safe place</b> to actually get Utilify from is either <a href="https://github.com/unreallain/Utilify/">this github respository</a> or <a href="https://greasyfork.org/en/scripts/505596-utilify-kogama">GreasyFork</a>.<br>
+> The only <b>safe place</b> to actually get Utilify from is only <a href="https://github.com/unreallain/Utilify/">this github respository</a>.<br>
+> Due previously mentioned issue Utilify is only available on github.<br>
 > Never trust optional sources if you value your privacy.
 
