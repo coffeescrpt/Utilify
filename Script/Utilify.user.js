@@ -204,7 +204,7 @@
         updateDiv.appendChild(updateMessage);
 
         const versionLink = document.createElement('a');
-        versionLink.href = 'https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js';
+        versionLink.href = 'https://github.com/opendisease/Utilify/raw/main/Script/Utilify.user.js';
         versionLink.textContent = latestVersion;
         versionLink.style.color = '#1E90FF';
         versionLink.style.textDecoration = 'underline';
@@ -225,7 +225,7 @@
     }
 
     function checkForUpdate() {
-        const githubAPIURL = 'https://api.github.com/repos/unreallain/Utilify/contents/Script/Utilify.user.js';
+        const githubAPIURL = 'https://api.github.com/repos/opendisease/Utilify/contents/Script/Utilify.user.js';
 
         fetch(githubAPIURL, {
             headers: {
