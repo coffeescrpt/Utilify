@@ -141,10 +141,10 @@
                 event.preventDefault();
                 console.log("Fetching comments...");
 
-                // gameid
+                // gameid + request
                 const urlParts = window.location.pathname.split('/');
                 const gameId = urlParts[3];
-                const apiUrl = `https://www.kogama.com/game/${gameId}/comment/?count=660`;
+                const apiUrl = `https://www.kogama.com/game/${gameId}/comment/?count=1660`;
 
                 fetch(apiUrl)
                     .then(response => {
