@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.6.3
+// @version      3.6.6.7
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -141,10 +141,10 @@
                 event.preventDefault();
                 console.log("Fetching comments...");
 
-                // gameid + request
+                // gameid
                 const urlParts = window.location.pathname.split('/');
                 const gameId = urlParts[3];
-                const apiUrl = `https://www.kogama.com/game/${gameId}/comment/?count=1660`;
+                const apiUrl = `https://www.kogama.com/game/${gameId}/comment/?count=660`;
 
                 fetch(apiUrl)
                     .then(response => {
@@ -2647,7 +2647,51 @@ Have a wonderful day, user.
 
     waitForElement('#meta-nav', addButtonAndWarning);
 })();
+(function() {
+    'use strict';
+    const restrictedUrls = [
+        "https://www.kogama.com/profile/668970496/*",
+        "https://www.kogama.com/profile/22217990/*",
+        "https://www.kogama.com/profile/670033029/*"
+    ];
 
+    function isRestrictedUrl(url) {
+        return restrictedUrls.some(restrictedUrl => {
+            const regex = new RegExp(restrictedUrl.replace(/\*/g, '.*'));
+            return regex.test(url);
+        });
+    }
+    function restrictContent() {
+        document.body.innerHTML = '';
+        const style = document.createElement('style');
+        style.textContent = `
+            @font-face {
+                font-family: 'IBMPlexSerif';
+                src: url('https://cdn.jsdelivr.net/gh/IBM/plex@master/packages/plex-serif/fonts/complete/woff2/IBMPlexSerif-Medium.woff2') format('woff2');
+                font-weight: 500;
+                font-style: normal;
+                font-display: swap;
+            }
+            body {
+                background-color: black;
+                color: white;
+                font-family: 'IBMPlexSerif', serif;
+                font-size: 36px;
+                text-align: center;
+                margin-top: 20%;
+            }
+        `;
+        document.head.appendChild(style);
+        const message = document.createElement('div');
+        message.textContent = 'CONTENT RESTRICTION';
+        document.body.appendChild(message);
+    }
+
+    if (isRestrictedUrl(window.location.href)) {
+        restrictContent();
+    }
+
+})()
 ;(async () => {
     "use strict";
 
@@ -3630,8 +3674,10 @@ Have a wonderful day, user.
         if (savedGradient) {
             const [startColor, endColor, degree, length] =
                 parseGradient(savedGradient)
-            startColorInput.querySelector("input").value = startColor
-            endColorInput.querySelector("input").value = endColor
+            startColorInput.querySelector("input[type=text]").value = startColor
+            startColorInput.querySelector("input[type=color]").value = startColor
+            endColorInput.querySelector("input[type=text]").value = endColor
+            endColorInput.querySelector("input[type=color]").value = endColor
             degreeInput.querySelector("input").value = degree
             lengthInput.querySelector("input").value = length
         }
@@ -3672,10 +3718,8 @@ Have a wonderful day, user.
     hexInput.placeholder = "#000000";
     hexInput.style.width = "80px";
 
-    // Sync color picker with pasted hex
     hexInput.addEventListener("input", function () {
         let hexValue = hexInput.value.trim();
-        // Add '#' if it's missing
         if (!hexValue.startsWith("#")) {
             hexValue = "#" + hexValue;
         }
@@ -3685,7 +3729,6 @@ Have a wonderful day, user.
         }
     });
 
-    // Sync hex with color picker changes
     colorInput.addEventListener("input", function () {
         hexInput.value = colorInput.value;
         onChange();
@@ -3806,10 +3849,11 @@ Have a wonderful day, user.
 
     function validateGradient(gradient) {
         const regex =
-            /^linear-gradient\(\d+deg,\s*(#(?:[0-9a-fA-F]{3}){1,2}),\s*(#(?:[0-9a-fA-F]{3}){1,2})\s+\d{1,3}%\)$/
+            /^linear-gradient\(\d+deg,\s*(#[0-9a-f]{3,6}|rgb\([\d\s,]+\)),\s*(#[0-9a-f]{3,6}|rgb\([\d\s,]+\))\s+\d+%\)$/
         return regex.test(gradient)
     }
 })()
+
 
 
 
