@@ -1,6 +1,7 @@
 <div align="center">
   
-![image](https://github.com/user-attachments/assets/752b1289-9d6c-4bad-9cb2-499b4b6153bd)
+<img src="Modules/img/banner.png"> <br>
+
 </div>
 
 <h2>About Utilify</h2>
