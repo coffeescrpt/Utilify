@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.6
+// @version      3.6.6.3
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -64,8 +64,117 @@
 
     init();
 })()
-;
-(function() {
+
+;(function() {
+    'use strict';
+    function waitForElement(selector, delay = 100, attempts = 50) {
+        return new Promise((resolve, reject) => {
+            let tries = 0;
+            const interval = setInterval(() => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    clearInterval(interval);
+                    resolve(element);
+                } else if (++tries >= attempts) {
+                    clearInterval(interval);
+                    reject(new Error('Element not found: ' + selector));
+                }
+            }, delay);
+        });
+    }
+
+    function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const options = {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+        };
+        return date.toLocaleString('en-GB', options);
+    }
+
+    function processComments(comments) {
+        const commentElements = document.querySelectorAll('.MuiPaper-root.MuiPaper-outlined.MuiPaper-rounded');
+
+        commentElements.forEach((element) => {
+            const usernameElement = element.querySelector('.MuiTypography-root.MuiLink-root');
+            const commentContentElement = element.querySelector('._23o8J');
+
+            if (usernameElement && commentContentElement) {
+                const username = usernameElement.innerText;
+                const commentContent = commentContentElement.innerText;
+
+                const comment = comments.find(item => item.profile_username === username && JSON.parse(item._data).data === commentContent);
+
+                if (comment) {
+                    const timestamp = formatTimestamp(comment.created);
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerText = `Created: ${timestamp}`;
+                    infoDiv.style.color = 'gray';
+                    infoDiv.style.fontSize = 'small';
+                    infoDiv.style.marginTop = '4px';
+                    element.appendChild(infoDiv);
+                }
+            }
+        });
+    }
+
+    function addLogButton() {
+        waitForElement('form._3I0z6').then((form) => {
+            const logButton = document.createElement('button');
+            logButton.innerText = 'View comment creation dates';
+            logButton.style.backgroundColor = '#1d1d1d';
+            logButton.style.color = '#fff';
+            logButton.style.width = '100%';
+            logButton.style.borderRadius = '11px';
+            logButton.style.border = 'none';
+            logButton.style.padding = '8px 16px';
+            logButton.style.marginTop = '10px';
+            logButton.style.cursor = 'pointer';
+
+            form.appendChild(logButton);
+
+            logButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                console.log("Fetching comments...");
+
+                // gameid
+                const urlParts = window.location.pathname.split('/');
+                const gameId = urlParts[3];
+                const apiUrl = `https://www.kogama.com/game/${gameId}/comment/?count=660`;
+
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(response => {
+                        console.log("Comments data:", response);
+                        if (response && response.data && Array.isArray(response.data)) {
+                            processComments(response.data);
+                        } else {
+                            console.error('Unexpected data format:', response);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching comments:', error);
+                    });
+            });
+        }).catch((error) => {
+            console.error(error);
+        });
+    }
+    window.addEventListener('load', () => {
+        setTimeout(addLogButton, 1001);
+    });
+
+})()
+;(function() {
     'use strict';
 
     function getCurrentVersion() {
