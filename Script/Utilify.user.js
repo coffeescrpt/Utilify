@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      3.6.6.7
+// @version      4.0.1
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -65,24 +65,8 @@
     init();
 })()
 
-;(function() {
+;(function () {
     'use strict';
-    function waitForElement(selector, delay = 100, attempts = 50) {
-        return new Promise((resolve, reject) => {
-            let tries = 0;
-            const interval = setInterval(() => {
-                const element = document.querySelector(selector);
-                if (element) {
-                    clearInterval(interval);
-                    resolve(element);
-                } else if (++tries >= attempts) {
-                    clearInterval(interval);
-                    reject(new Error('Element not found: ' + selector));
-                }
-            }, delay);
-        });
-    }
-
     function formatTimestamp(timestamp) {
         const date = new Date(timestamp);
         const options = {
@@ -95,11 +79,12 @@
         };
         return date.toLocaleString('en-GB', options);
     }
-
     function processComments(comments) {
         const commentElements = document.querySelectorAll('.MuiPaper-root.MuiPaper-outlined.MuiPaper-rounded');
 
         commentElements.forEach((element) => {
+            if (element.getAttribute('data-timestamp-appended')) return;
+
             const usernameElement = element.querySelector('.MuiTypography-root.MuiLink-root');
             const commentContentElement = element.querySelector('._23o8J');
 
@@ -107,7 +92,9 @@
                 const username = usernameElement.innerText;
                 const commentContent = commentContentElement.innerText;
 
-                const comment = comments.find(item => item.profile_username === username && JSON.parse(item._data).data === commentContent);
+                const comment = comments.find(item =>
+                    item.profile_username === username && JSON.parse(item._data).data === commentContent
+                );
 
                 if (comment) {
                     const timestamp = formatTimestamp(comment.created);
@@ -117,60 +104,72 @@
                     infoDiv.style.fontSize = 'small';
                     infoDiv.style.marginTop = '4px';
                     element.appendChild(infoDiv);
+                    element.setAttribute('data-timestamp-appended', 'true');
                 }
             }
         });
     }
-
-    function addLogButton() {
-        waitForElement('form._3I0z6').then((form) => {
-            const logButton = document.createElement('button');
-            logButton.innerText = 'View comment creation dates';
-            logButton.style.backgroundColor = '#1d1d1d';
-            logButton.style.color = '#fff';
-            logButton.style.width = '100%';
-            logButton.style.borderRadius = '11px';
-            logButton.style.border = 'none';
-            logButton.style.padding = '8px 16px';
-            logButton.style.marginTop = '10px';
-            logButton.style.cursor = 'pointer';
-
-            form.appendChild(logButton);
-
-            logButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                console.log("Fetching comments...");
-
-                // gameid
-                const urlParts = window.location.pathname.split('/');
-                const gameId = urlParts[3];
-                const apiUrl = `https://www.kogama.com/game/${gameId}/comment/?count=660`;
-
-                fetch(apiUrl)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
+    function toAbsoluteURL(url) {
+        try {
+            return new URL(url, window.location.origin).href;
+        } catch (e) {
+            console.error("Invalid URL: ", url);
+            return null;
+        }
+    }
+    function monitorNetworkRequests() {
+        const originalFetch = window.fetch;
+        window.fetch = async function (...args) {
+            const absoluteURL = toAbsoluteURL(args[0]);
+            const response = await originalFetch.apply(this, [absoluteURL, ...args.slice(1)]);
+            if (/\/comment\/\?/.test(absoluteURL)) {
+                const url = new URL(absoluteURL);
+                if ((url.pathname.includes("/game/") || url.pathname.includes("/feed/")) && url.searchParams.get('count')) {
+                    response.clone().json().then(data => {
+                        if (data && Array.isArray(data.data)) {
+                            processComments(data.data);
                         }
-                        return response.json();
-                    })
-                    .then(response => {
-                        console.log("Comments data:", response);
-                        if (response && response.data && Array.isArray(response.data)) {
-                            processComments(response.data);
-                        } else {
-                            console.error('Unexpected data format:', response);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching comments:', error);
                     });
+                }
+            }
+
+            return response;
+        };
+        const originalXhrOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+            const absoluteURL = toAbsoluteURL(url);
+
+            this.addEventListener('load', function () {
+                if (/\/comment\/\?/.test(absoluteURL)) {
+                    const urlObj = new URL(absoluteURL);
+                    if ((urlObj.pathname.includes("/game/") || urlObj.pathname.includes("/feed/")) && urlObj.searchParams.get('count')) {
+                        try {
+                            const response = JSON.parse(this.responseText);
+                            if (response && Array.isArray(response.data)) {
+                                processComments(response.data);
+                            }
+                        } catch (error) {
+                            console.error("Error parsing comment data:", error);
+                        }
+                    }
+                }
             });
-        }).catch((error) => {
-            console.error(error);
-        });
+
+            return originalXhrOpen.apply(this, [method, absoluteURL, ...rest]);
+        };
+    }
+    function startCommentObserver() {
+        setInterval(() => {
+            const commentElements = document.querySelectorAll('.MuiPaper-root.MuiPaper-outlined.MuiPaper-rounded');
+            commentElements.forEach((element) => {
+                if (!element.getAttribute('data-timestamp-appended')) {
+                }
+            });
+        }, 1500);
     }
     window.addEventListener('load', () => {
-        setTimeout(addLogButton, 1001);
+        monitorNetworkRequests();
+        startCommentObserver();
     });
 
 })()
@@ -204,7 +203,7 @@
         updateDiv.appendChild(updateMessage);
 
         const versionLink = document.createElement('a');
-        versionLink.href = 'https://github.com/opendisease/Utilify/raw/main/Script/Utilify.user.js';
+        versionLink.href = 'https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js';
         versionLink.textContent = latestVersion;
         versionLink.style.color = '#1E90FF';
         versionLink.style.textDecoration = 'underline';
@@ -225,7 +224,7 @@
     }
 
     function checkForUpdate() {
-        const githubAPIURL = 'https://api.github.com/repos/opendisease/Utilify/contents/Script/Utilify.user.js';
+        const githubAPIURL = 'https://api.github.com/repos/unreallain/Utilify/contents/Script/Utilify.user.js';
 
         fetch(githubAPIURL, {
             headers: {
@@ -1806,9 +1805,6 @@ GM_addStyle(`
 		}, 2000)
 	})
 })()
-
-
-
 ;(function() {
     "use strict";
 
@@ -1836,7 +1832,7 @@ GM_addStyle(`
         }
         .expanded-menu {
             position: absolute;
-            background-color: #f5f0f8; /* Soft purplish color */
+            background-color: #f5f0f8;
             padding: 10px;
             border-radius: 5px;
             display: none;
@@ -1865,6 +1861,58 @@ GM_addStyle(`
         }
         .expanded-menu button:hover {
             background-color: rgba(0, 0, 0, 0.1);
+        }
+        .features-page {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.6); /* Darker, more opaque background */
+            color: #fff;
+            backdrop-filter: blur(8px);
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            z-index: 10000;
+            text-align: left;
+        }
+        .features-page h1 {
+            color: #ff69b4;
+            margin-bottom: 20px;
+        }
+        .features-page p {
+            margin: 10px 0;
+        }
+        .features-page button.close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff69b4;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .features-page button.close:hover {
+            background-color: #ff1493;
+        }
+        .features-page ufc {
+            color: #ff69b4;
+            font-weight: bold;
+        }
+        .features-page c {
+            color: #fff;
+            text-shadow: 0 0 2px #fff;
+            border-radius: 8px;
+            padding: 2px 4px;
+            font-family: monospace;
+            display: inline;
         }
     `);
 
@@ -1907,10 +1955,17 @@ GM_addStyle(`
             window.location.href = window.location.href + "/config";
         });
 
+        var featuresButton = document.createElement("button");
+        featuresButton.textContent = "Features";
+        featuresButton.addEventListener("click", function() {
+            document.querySelector(".features-page").style.display = "block";
+        });
+
         menuButtons.appendChild(gradientButton);
         menuButtons.appendChild(masspurchaseButton);
         menuButtons.appendChild(autoblockingButton);
         menuButtons.appendChild(settingsButton);
+        menuButtons.appendChild(featuresButton);
 
         expandedMenu.appendChild(menuButtons);
         header.appendChild(expandedMenu);
@@ -1929,7 +1984,130 @@ GM_addStyle(`
     } else {
         console.error("Header element not found!");
     }
+    var featuresPage = document.createElement("div");
+    featuresPage.className = "features-page";
+    featuresPage.innerHTML = `
+        <button class="close">Close</button>
+        <h1>Features</h1>
+        <p>
+            Here are some of the features available:
+            <br><br>
+            <ufc>Allow Paste:</ufc> Brings back the feature to copy and paste everywhere.
+            <br><br>
+            <ufc>Auto Blocking:</ufc> Helps to efficiently block users.
+            <br><br>
+            <ufc>Auto Badge Redeem:</ufc> Redeem available badges with just a click of a button.
+            <br><br>
+            <ufc>Better Titles:</ufc> Cozier and compact page titles.
+            <br><br>
+            <ufc>Compact Menu:</ufc> A way cozier and easier to navigate navbar.
+            <br><br>
+            <ufc>Console Warning:</ufc> Be careful what you paste into it.
+            <br><br>
+            <ufc>Display Notification for direct messages:</ufc> Allows you to view direct messages in a system tray notification in a KoGaMaBuddy style.
+            <br><br>
+            <ufc>Edit Website Gradient:</ufc> Let's you style the website in your own unique gradient.
+            <br><br>
+            <ufc>Fast Friendslist:</ufc> Allows you to go through any friends list at light speed.
+            <br><br>
+            <ufc>Filter friends bar:</ufc> Allows you to find & message people faster.
+            <br><br>
+            <ufc>Find User Avatars:</ufc> (Requested by IDEALISM.) Tries to look for a specific avatar someone may have from their bought avatars.
+            <br><br>
+            <ufc>Fix ThisHTML:</ufc> Fixes a lot of description-based issues related to symbols like: > \ and so on.
+            <br><br>
+            <ufc>Get Image Strokes Away:</ufc> Gives a lot of avatar preview transparent background.
+            <br><br>
+            <ufc>KoGaMaBuddy emojis:</ufc> Brings back KoGaMaBuddy emojis. <br> Start with typing out <c>:</c> and the list will appear.
+            <br><br>
+            <ufc>Preview Marketplace Images:</ufc> Allows you to view a bigger preview of the object from a marketplace.
+            <br><br>
+            <ufc>Privacy Blur:</ufc> Allows you to blur possibly sensitive content such as certain inputs, descriptions, etc.
+            <br><br>
+            <ufc>Recent Activity:</ufc> (4Snowy) Let's you spy on when a certain user was last active.
+            <br><br>
+            <ufc>RichText:</ufc> Appends a lot of markdown tricks.
+            <br><br>
+            <ufc>Search Projects:</ufc> Allows you to quickly look through your projects.
+            <br><br>
+            <ufc>Steal Description:</ufc> Swiftly steal any description, makes it way easier to edit and 'take inspiration' from others.
+            <br><br>
+            <ufc>User Backgrounds:</ufc> KoGaMaBuddy user-profile backgrounds for profile. Now with custom filters and up to 3 at once, example usage:<br><br>
+            <c> Background: 54321, filter:dark,aurora,starlight; </c><br><br>
+            <c> Background: 54321, filter:blur,rain; </c>
+            <br><br>
+            <ufc>User Gradients:</ufc> similar to UserBackgrounds, this lets you set a global gradient for your profile by adding gradient data to your description: <br><br>
+            <c>linear-gradient(17deg, #0a0a05, #632812 87%)</c>
+            <br><br>
+            <ufc>User banner:</ufc> Way more compact KoGaMaBuddy's banners for profiles, view usage here: <br><br>
+            <c>banner: "BANNER_CONTENT", #HEX_COLOR;</c><br><br>
+            Preview these user-profile features on this profile: profile/670185677/
+            <br><br>
+            <ufc>View CommentDate:</ufc> (4Snowy) Allows you to view when a comment was written / posted.
+            <br><br>
+            <ufc>ViewFeed:</ufc> (4Snowy) KoGaMaBuddy's feed viewer in a different format.
+            <br><br>
+            <ufc>ViewDMLog:</ufc> Allows you to export message log of direct chats (dms).
+            <br><br>
+        </p>
+    `;
+    document.body.appendChild(featuresPage);
+    document.querySelector(".features-page .close").addEventListener("click", function() {
+        featuresPage.style.display = "none";
+    });
+
 })();
+(function() {
+    'use strict';
+
+    const contributorArray = {
+        '50117938': ['contributor'],
+        '668318153': ['contributor'],
+        '17769289': ['contributor'],
+        '20998101': ['contributor'],
+        '17506905': ['contributor'],
+        '36355': ['contributor'],
+        '670185677': ['contributor'],
+        '17660398': ['contributor'],
+        '670193135': ['contributor'],
+        '00000000': ['contributor']
+    };
+
+    function addBadge() {
+        const userId = window.location.pathname.split('/')[2];
+
+        if (contributorArray[userId]) {
+            const badges = contributorArray[userId];
+            const observer = new MutationObserver((mutations) => {
+                const profileStatsContainer = document.querySelector('div._2O_AH');
+                if (profileStatsContainer) {
+                    const badgesContainer = document.createElement('div');
+                    badgesContainer.className = 'utilify-badges';
+
+                    badges.forEach(badgeType => {
+                        const badge = document.createElement('img');
+                        badge.style.width = '32px';
+                        badge.style.height = '32px';
+                        badge.style.marginRight = '10px';
+                        badge.style.verticalAlign = 'middle';
+                        if (badgeType === 'contributor') {
+                            badge.src = 'https://i.imgur.com/36hp1pm.gif';
+                            badge.title = 'Official Utilify Contributor. Thank you for your help ♡';
+                        }
+                        badgesContainer.appendChild(badge);
+                    });
+                    profileStatsContainer.parentNode.insertBefore(badgesContainer, profileStatsContainer.nextSibling);
+
+                    observer.disconnect();
+                }
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    }
+
+    addBadge();
+})()
 ;(function() {
     "use strict";
 
@@ -2192,6 +2370,113 @@ GM_addStyle(`
 	}
 
 	window.addEventListener("load", init)
+})()
+;(function() {
+    'use strict';
+    GM_addStyle(`
+        .ubhelper {
+            position: absolute;
+            background: #333;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px;
+            font-size: 12px;
+            display: none;
+            z-index: 9999;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    `);
+    const ubhelper = document.createElement('div');
+    ubhelper.className = 'ubhelper';
+    document.body.appendChild(ubhelper);
+    const filters = [
+        'haze',
+        'starlight',
+        'aurora',
+        'firefly',
+        'snow',
+        'rain',
+        'meteorshower',
+        'blur',
+        'dark',
+        'light'
+    ];
+    function showUBHelper(event) {
+        const textarea = event.target;
+
+        if (textarea.tagName.toLowerCase() !== 'textarea' && textarea.tagName.toLowerCase() !== 'input') {
+            return;
+        }
+
+        const value = textarea.value;
+        const cursorPos = textarea.selectionStart;
+        const rect = textarea.getBoundingClientRect();
+        const cursorOffset = getCursorOffset(textarea, cursorPos);
+        const x = rect.left + cursorOffset.x;
+        const y = rect.top + cursorOffset.y + 20;
+        const backgroundIndex = value.lastIndexOf('background:', cursorPos);
+        const filterIndex = value.lastIndexOf('filter:', cursorPos);
+
+        if (backgroundIndex !== -1 && (backgroundIndex > filterIndex || filterIndex === -1)) {
+            showUBHelperAt('Provide Game ID', x, y);
+        } else if (filterIndex !== -1) {
+            const filtersList = getFiltersList(value, cursorPos);
+            showUBHelperAt('Available Filters: ' + filtersList, x, y);
+        } else {
+            ubhelper.style.display = 'none';
+        }
+    }
+    function getCursorOffset(textarea, cursorPos) {
+        const span = document.createElement('span');
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'pre';
+        span.style.font = window.getComputedStyle(textarea).font;
+        span.textContent = textarea.value.substr(0, cursorPos);
+
+        document.body.appendChild(span);
+        const lineWidth = span.offsetWidth;
+        const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10);
+        document.body.removeChild(span);
+
+        return {
+            x: lineWidth,
+            y: lineHeight
+        };
+    }
+    function getFiltersList(value, cursorPos) {
+        const filtersPattern = /filter:\s*([a-z,]*)/i;
+        const match = filtersPattern.exec(value.substr(0, cursorPos));
+
+        if (match) {
+            const usedFilters = match[1].split(',').map(filter => filter.trim()).filter(Boolean);
+            const availableFilters = filters.filter(filter => !usedFilters.includes(filter));
+
+            if (usedFilters.length < 3) {
+                return availableFilters.join(', ');
+            } else {
+                return 'No more filters allowed';
+            }
+        }
+        return filters.join(', ');
+    }
+    function showUBHelperAt(text, x, y) {
+        ubhelper.textContent = text;
+        ubhelper.style.left = x + 'px';
+        ubhelper.style.top = y + 'px';
+        ubhelper.style.display = 'block';
+    }
+
+    function hideUBHelper() {
+        ubhelper.style.display = 'none';
+    }
+    document.addEventListener('input', showUBHelper);
+    document.addEventListener('mousemove', hideUBHelper);
+    document.querySelectorAll('textarea, input').forEach(el => {
+        el.addEventListener('input', showUBHelper);
+    });
 })()
 ;(function() {
     'use strict';
@@ -2461,192 +2746,6 @@ GM_addStyle(`
     waitForElements('input.MuiInputBase-input.MuiFilledInput-input', addPasswordGeneratorUI);
 })();
 
-;(function() {
-    'use strict';
-
-    function waitForElement(selector, callback, delay = 1000) {
-        const interval = setInterval(() => {
-            if (document.querySelector(selector)) {
-                clearInterval(interval);
-                setTimeout(() => callback(), delay);
-            }
-        }, 100);
-    }
-
-    function createButton() {
-        const button = document.createElement('div');
-        button.style.width = '40px';
-        button.style.height = '40px';
-        button.style.backgroundColor = 'transparent';
-        button.style.borderRadius = '50%';
-        button.style.display = 'flex';
-        button.style.alignItems = 'center';
-        button.style.justifyContent = 'center';
-        button.style.fontSize = '20px';
-        button.style.fontWeight = 'bold';
-        button.style.cursor = 'pointer';
-        button.style.position = 'absolute';
-        button.style.zIndex = '1000';
-        button.style.top = '0';
-        button.style.left = '-50px';
-        button.style.boxShadow = '0 0 5px rgba(0, 0, 0, 0.5)';
-
-        const svgHeart = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" stroke="#fff" fill="none" stroke-width="2">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-        `;
-
-        const badge = document.createElement('div');
-        badge.style.position = 'absolute';
-        badge.style.top = '2px';
-        badge.style.right = '3px';
-        badge.style.width = '16px';
-        badge.style.height = '16px';
-        badge.style.backgroundColor = '#ff5722';
-        badge.style.color = '#fff';
-        badge.style.borderRadius = '50%';
-        badge.style.display = 'flex';
-        badge.style.alignItems = 'center';
-        badge.style.justifyContent = 'center';
-        badge.style.fontSize = '12px';
-        badge.style.fontWeight = 'bold';
-        badge.textContent = '1';
-
-        button.innerHTML = svgHeart;
-        button.appendChild(badge);
-
-        button.addEventListener('click', () => {
-            const warning = document.querySelector('#utilifydevwarning');
-            if (warning) {
-                warning.style.display = warning.style.display === 'none' ? 'block' : 'none';
-            } else {
-                console.error('Warning element not found');
-            }
-        });
-
-        return button;
-    }
-
-    function createWarning() {
-        const warning = document.createElement('div');
-        warning.id = 'utilifydevwarning';
-        warning.style.position = 'fixed';
-        warning.style.top = '50%';
-        warning.style.left = '50%';
-        warning.style.transform = 'translate(-50%, -50%)';
-        warning.style.width = '638px';
-        warning.style.padding = '20px';
-        warning.style.backgroundColor = '#2b2b2b';
-        warning.style.color = '#f8f8f2';
-        warning.style.borderRadius = '8px';
-        warning.style.boxShadow = '0 0 15px rgba(0, 0, 0, 0.6)';
-        warning.style.zIndex = '9999';
-        warning.style.display = 'none';
-        warning.style.maxWidth = '90%';
-        warning.style.textAlign = 'center';
-        warning.style.cursor = 'move';
-        warning.style.overflowWrap = 'break-word';
-        warning.style.wordBreak = 'break-word';
-
-        warning.innerHTML = `
-            <div style="font-size: 22px; font-weight: bold; margin-bottom: 10px; color: #9667af;">
-Utilify & Future
-            </div>
-            <div id="warning-content" style="white-space: pre-wrap; margin-bottom: 20px;">
-<span style="color: #88d5c0;">On 27th August it has been over a  year for Utilify.</span>
-<span style="color: #88d5c0;">For this occasion I want to show my gratitude both for users and those who have helped me create it.</span>
-
-
-I hope you've enjoyed its features and all effort put into it.
-I appreciate your usage of my addon for its entire journey but lately it has been <span style="color: #eee3a4;">very troublesome</span> to maintain it.
-It has resulted in a lot of users getting <span style="color: #ee8079;">banned</span> for <span style="color: #ee8079;">alleged cheating</span>.
-I am sorry for any inconvenience this script has caused by its existence.
-Please continue to use this addon with caution.
-Whoever you are, <span style="color: #b491f4;">I love you</span>. Thank you for using it.
-Bug fixes and maintaining will still resume but in a very slow pace.
-In case you want to talk, please hit me @ discord under '<span style="color: #c8f6bd;">simonvhs</span>'
-'<span style="color: #ec7e35;">Remember to stay safe and never share your password.</span>'
-Have a wonderful day, user.
-
-- - Simon.
-            </div>
-            <button style="
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                background: none;
-                border: none;
-                color: #f8f8f2;
-                font-size: 22px;
-                cursor: pointer;
-                font-weight: bold;
-            ">&times;</button>
-        `;
-
-        warning.querySelector('button').addEventListener('click', () => {
-            warning.style.display = 'none';
-        });
-
-        let isDragging = false;
-        let startX, startY, initialX, initialY;
-
-        const onMouseMove = (event) => {
-            if (isDragging) {
-                const dx = event.clientX - startX;
-                const dy = event.clientY - startY;
-                warning.style.left = `${initialX + dx}px`;
-                warning.style.top = `${initialY + dy}px`;
-            }
-        };
-
-        const onMouseUp = () => {
-            isDragging = false;
-            warning.style.cursor = 'move';
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-
-        warning.addEventListener('mousedown', (event) => {
-            if (event.target.tagName.toLowerCase() === 'button') return;
-
-            isDragging = true;
-            startX = event.clientX;
-            startY = event.clientY;
-            initialX = parseInt(window.getComputedStyle(warning).left, 10);
-            initialY = parseInt(window.getComputedStyle(warning).top, 10);
-            warning.style.cursor = 'grabbing';
-
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        });
-
-        return warning;
-    }
-
-    function addButtonAndWarning() {
-        const button = createButton();
-        const warning = createWarning();
-
-        document.body.appendChild(warning);
-
-        const targetElement = document.querySelector('#meta-nav');
-        if (targetElement) {
-            targetElement.style.position = 'relative';
-            const headerToggle = targetElement.querySelector('#header-notify-toggle');
-            if (headerToggle) {
-                headerToggle.style.position = 'relative';
-                headerToggle.insertBefore(button, headerToggle.firstChild);
-            } else {
-                console.error('Target child element not found');
-            }
-        } else {
-            console.error('Target element not found');
-        }
-    }
-
-    waitForElement('#meta-nav', addButtonAndWarning);
-})();
 (function() {
     'use strict';
     const restrictedUrls = [
@@ -2694,8 +2793,6 @@ Have a wonderful day, user.
 })()
 ;(async () => {
     "use strict";
-
-    // Inject CSS for the modal
     function injectModalStyles() {
         const style = document.createElement('style');
         style.textContent = `
@@ -2872,12 +2969,12 @@ Have a wonderful day, user.
                         resolve(paginator);
                     } else if (attemptCount >= maxAttempts) {
                         clearInterval(intervalId);
-                        resolve(null); // Return null instead of rejecting
+                        resolve(null);
                     }
                 }, 2000);
             });
         } else {
-            return Promise.resolve(null); // URL does not match, return null
+            return Promise.resolve(null);
         }
     }
 
@@ -2911,7 +3008,6 @@ Have a wonderful day, user.
             return;
         }
 
-        // Fetch data concurrently
         const fetchPromises = [];
         for (let i = 1; i <= totalPages; i++) {
             fetchPromises.push(fetchPageData(i));
@@ -2927,7 +3023,7 @@ Have a wonderful day, user.
                         link.textContent = item.name;
                         link.setAttribute("data-object-id", item.id);
                         link.href = generateHref(userId, item.id);
-                        link.className = "special-glow"; // Add special class for glow effect
+                        link.className = "special-glow";
                         link.target = "_blank";
                         listItem.appendChild(link);
                         elementList.appendChild(listItem);
@@ -3854,100 +3950,84 @@ Have a wonderful day, user.
     }
 })()
 
-
-
-
-
-
 ;(function () {
-	"use strict"
+	"use strict";
 
 	function addCopyButton() {
-		var descriptionDiv = document.querySelector('div[itemprop="description"]')
+		var descriptionDiv = document.querySelector('div[itemprop="description"]');
 
 		if (descriptionDiv) {
-			var copyButton = document.createElement("button")
-			copyButton.textContent = "Copy Description"
-			copyButton.style.display = "block"
-			copyButton.style.marginTop = "10px"
-			copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.2)"
+			var copyButton = document.createElement("button");
+			copyButton.textContent = "Copy Description";
+			copyButton.style.display = "block";
+			copyButton.style.marginTop = "10px";
+			copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
 			copyButton.style.boxShadow =
-				"0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1)"
-			copyButton.style.backdropFilter = "blur(10px)"
-			copyButton.style.borderRadius = "8px"
-			copyButton.style.marginBottom = "10px"
+				"0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1)";
+			copyButton.style.backdropFilter = "blur(10px)";
+			copyButton.style.borderRadius = "8px";
+			copyButton.style.marginBottom = "10px";
 
 			copyButton.addEventListener("mouseenter", function () {
-				copyButton.style.transition = "background-color 0.3s ease-in-out"
-				copyButton.style.backgroundColor = "rgba(0, 0, 0, 0.2)"
-			})
+				copyButton.style.transition = "background-color 0.3s ease-in-out";
+				copyButton.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+			});
 
 			copyButton.addEventListener("mouseleave", function () {
-				copyButton.style.transition = "background-color 0.3s ease-in-out"
-				copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.2)"
-			})
+				copyButton.style.transition = "background-color 0.3s ease-in-out";
+				copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+			});
 
 			copyButton.addEventListener("click", function () {
-				var descriptionText = getDescriptionText(descriptionDiv)
-				copyToClipboard(descriptionText)
-				showCustomNotification("Description copied to clipboard!")
-			})
+				var descriptionText = getDescriptionRawText(descriptionDiv);
+				copyToClipboard(descriptionText);
+				showCustomNotification("Description copied to clipboard!");
+			});
 
-			descriptionDiv.appendChild(copyButton)
+			descriptionDiv.appendChild(copyButton);
 		}
 	}
 
-	function getDescriptionText(descriptionDiv) {
-		var textNodes = Array.from(descriptionDiv.childNodes)
-			.filter(node => node.nodeType === Node.TEXT_NODE)
-			.map(node => node.textContent.trim())
-
-		var buttonTextIndex = textNodes.findIndex(
-			text => text === "Copy Description",
-		)
-		if (buttonTextIndex !== -1) {
-			textNodes.splice(buttonTextIndex, 1)
-		}
-
-		return textNodes.join("\n")
+	function getDescriptionRawText(descriptionDiv) {
+		return descriptionDiv.innerText;  // This captures the raw text content ignoring CSS styles
 	}
 
 	function copyToClipboard(text) {
-		var tempTextarea = document.createElement("textarea")
-		tempTextarea.value = text
-		document.body.appendChild(tempTextarea)
-		tempTextarea.select()
-		document.execCommand("copy")
-		document.body.removeChild(tempTextarea)
+		var tempTextarea = document.createElement("textarea");
+		tempTextarea.value = text;
+		document.body.appendChild(tempTextarea);
+		tempTextarea.select();
+		document.execCommand("copy");
+		document.body.removeChild(tempTextarea);
 	}
 
 	function showCustomNotification(message) {
-		var notification = document.createElement("div")
-		notification.textContent = message
-		notification.style.position = "fixed"
-		notification.style.top = "20px"
-		notification.style.left = "50%"
-		notification.style.transform = "translateX(-50%)"
-		notification.style.padding = "10px"
-		notification.style.background = "rgba(0, 0, 0, 0.8)"
-		notification.style.color = "#fff"
-		notification.style.borderRadius = "5px"
-		notification.style.boxShadow = "0px 2px 5px rgba(0, 0, 0, 0.3)"
-		notification.style.zIndex = "9999"
-		notification.style.transition = "opacity 0.3s ease-in-out"
+		var notification = document.createElement("div");
+		notification.textContent = message;
+		notification.style.position = "fixed";
+		notification.style.top = "20px";
+		notification.style.left = "50%";
+		notification.style.transform = "translateX(-50%)";
+		notification.style.padding = "10px";
+		notification.style.background = "rgba(0, 0, 0, 0.8)";
+		notification.style.color = "#fff";
+		notification.style.borderRadius = "5px";
+		notification.style.boxShadow = "0px 2px 5px rgba(0, 0, 0, 0.3)";
+		notification.style.zIndex = "9999";
+		notification.style.transition = "opacity 0.3s ease-in-out";
 
-		document.body.appendChild(notification)
+		document.body.appendChild(notification);
 
 		setTimeout(function () {
-			notification.style.opacity = "0"
+			notification.style.opacity = "0";
 
 			setTimeout(function () {
-				notification.remove()
-			}, 300)
-		}, 2000)
+				notification.remove();
+			}, 300);
+		}, 2000);
 	}
 
-	window.addEventListener("load", addCopyButton)
+	window.addEventListener("load", addCopyButton);
 })()
 
 ;(function () {
@@ -4136,12 +4216,12 @@ Have a wonderful day, user.
         )
         console.log(
             "%c" +
-                "However, if you are aware of what you are doing, consider hitting me up on @simonvhs",
+                "If you want to contribute visit - > github.com/opendisease/Utilify",
             ConsoleStyle.INVITE,
         )
         console.log(
             "%c" +
-                "Looking for more dev functionality? Try out our new Utilify Webpack @ 'https://github.com/rvnss/Whistle/blob/main/GlobalKoGaMaBuddy/webpack.js'",
+                "Looking for direct help? My discord ID is 970332627221504081'",
             ConsoleStyle.ADDITIONAL,
         )
     }, 2700)
@@ -4167,7 +4247,7 @@ Have a wonderful day, user.
             const BACKGROUND_SECTION = document.querySelector("._33DXe");
             const BODY_ELEMENT = document.querySelector("body#root-page-mobile");
             const BACKGROUND_REGEXP =
-                /(?:\|\|)?Background:\s*(\d+)(?:,\s*filter:\s*(light|dark|blur|none|rain|meteorshower))?;?(?:\|\|)?/i;
+                /(?:\|\|)?Background:\s*(\d+)(?:,\s*filter:\s*([a-z, ]+))?;?(?:\|\|)?/i;
             const GRADIENT_REGEXP =
                 /linear-gradient\((?:\d+deg, )?(#[0-9a-fA-F]{6}, #[0-9a-fA-F]{6}(?: \d+%)?)\)/i;
             const match = BACKGROUND_REGEXP.exec(DESCRIPTION_TEXT);
@@ -4175,9 +4255,9 @@ Have a wonderful day, user.
 
             if (match && typeof match == "object") {
                 const gameId = match[1];
-                const embedUrl = `https://www.kogama.com/games/play/${gameId}/embed`;
-
+                const filters = (match[2] || "").split(",").map(f => f.trim()).slice(0, 3);
                 const imageSrc = await fetchImageSource(gameId);
+
                 BACKGROUND_AVATAR.style.transition = "opacity 0.3s ease-in";
                 BACKGROUND_AVATAR.style.opacity = "0";
 
@@ -4189,31 +4269,30 @@ Have a wonderful day, user.
                 }, 1000);
 
                 BACKGROUND_SECTION.style.backgroundImage = `url("${imageSrc}")`;
-                switch (match[2]) {
-                    case "blur":
-                        BACKGROUND_AVATAR.style.filter = "none";
-                        BACKGROUND_SECTION.style.filter = "blur(5px)";
-                        break;
-                    case "none":
+
+                // Apply filters
+                const filterFunctions = {
+                    blur: () => BACKGROUND_SECTION.style.filter = "blur(5px)",
+                    none: () => {
                         BACKGROUND_AVATAR.style.opacity = "unset";
-                        BACKGROUND_AVATAR.style.filter = "none";
                         BACKGROUND_SECTION.style.filter = "none";
-                        break;
-                    case "dark":
-                        BACKGROUND_SECTION.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("${imageSrc}")`;
-                        break;
-                    case "light":
-                        BACKGROUND_SECTION.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), url("${imageSrc}")`;
-                        break;
-                    case "rain":
-                        BACKGROUND_SECTION.style.backgroundImage = `url("${imageSrc}")`;
-                        applyRainEffect();
-                        break;
-                    case "meteorshower":
-                        BACKGROUND_SECTION.style.backgroundImage = `url("${imageSrc}")`;
-                        applyMeteorShowerEffect();
-                        break;
-                }
+                    },
+                    dark: () => BACKGROUND_SECTION.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("${imageSrc}")`,
+                    light: () => BACKGROUND_SECTION.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), url("${imageSrc}")`,
+                    rain: applyRainEffect,
+                    meteorshower: applyMeteorShowerEffect,
+                    starlight: applyStarlightEffect,
+                    aurora: applyAuroraEffect,
+                    firefly: applyFireflyEffect,
+                    snow: applySnowEffect,
+                    haze: applyHazeEffect
+                };
+
+                filters.forEach(filter => {
+                    if (filterFunctions[filter]) {
+                        filterFunctions[filter]();
+                    }
+                });
             }
 
             if (gradientMatch && typeof gradientMatch == "object") {
@@ -4261,7 +4340,7 @@ Have a wonderful day, user.
                 rainOverlay.style.width = "100%";
                 rainOverlay.style.height = "100%";
                 rainOverlay.style.pointerEvents = "none";
-                rainOverlay.style.zIndex = "2";
+                rainOverlay.style.zIndex = "10";
                 rainOverlay.style.overflow = "hidden";
                 element.appendChild(rainOverlay);
                 const numDrops = 100;
@@ -4286,7 +4365,8 @@ Have a wonderful day, user.
                         }
                     }
                     .rain-drop {
-                        z-index: 2;
+                        z-index: 10;
+                        animation: fall linear infinite;
                     }
                 `;
                 document.head.appendChild(styleSheet);
@@ -4308,11 +4388,11 @@ Have a wonderful day, user.
                 meteorOverlay.style.width = "100%";
                 meteorOverlay.style.height = "100%";
                 meteorOverlay.style.pointerEvents = "none";
-                meteorOverlay.style.zIndex = "2";
+                meteorOverlay.style.zIndex = "10";
                 meteorOverlay.style.overflow = "hidden";
                 element.appendChild(meteorOverlay);
 
-                const numMeteors = 80; // Reduced density for more spacing
+                const numMeteors = 80;
                 for (let i = 0; i < numMeteors; i++) {
                     const meteor = document.createElement("div");
                     meteor.className = "meteor";
@@ -4342,11 +4422,11 @@ Have a wonderful day, user.
                             transform: translate(0, 0) rotate(${Math.random() * 360}deg);
                         }
                         to {
-                            transform: translate(100vw, 100vh) rotate(${Math.random() * 360}deg);
+                            transform: translateY(100vh);
                         }
                     }
                     .meteor {
-                        z-index: 2;
+                        z-index: 10;
                         animation: fall linear infinite;
                     }
                 `;
@@ -4355,9 +4435,248 @@ Have a wonderful day, user.
         });
     }
 
+    function applyStarlightEffect() {
+        const targetElements = [
+            document.querySelector("._13UrL ._23KvS"),
+            document.querySelector("._13UrL ._23KvS ._33DXe"),
+        ];
+
+        targetElements.forEach(element => {
+            if (element) {
+                const starlightOverlay = document.createElement("div");
+                starlightOverlay.style.position = "absolute";
+                starlightOverlay.style.top = "0";
+                starlightOverlay.style.left = "0";
+                starlightOverlay.style.width = "100%";
+                starlightOverlay.style.height = "100%";
+                starlightOverlay.style.pointerEvents = "none";
+                starlightOverlay.style.zIndex = "2";
+                starlightOverlay.style.overflow = "hidden";
+                element.appendChild(starlightOverlay);
+
+                const numStars = 200; // Adjust number of stars as needed
+                for (let i = 0; i < numStars; i++) {
+                    const star = document.createElement("div");
+                    star.className = "star";
+                    star.style.position = "absolute";
+                    star.style.width = "2px";
+                    star.style.height = "2px";
+                    star.style.backgroundColor = "#fff";
+                    star.style.borderRadius = "50%";
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.opacity = Math.random() * 0.5 + 0.5; // Random opacity
+                    starlightOverlay.appendChild(star);
+                }
+
+                const styleSheet = document.createElement("style");
+                styleSheet.type = "text/css";
+                styleSheet.innerText = `
+                    @keyframes twinkle {
+                        0% { opacity: 0.5; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0.5; }
+                    }
+                    .star {
+                        animation: twinkle ${Math.random() * 3 + 2}s infinite ease-in-out;
+                    }
+                `;
+                document.head.appendChild(styleSheet);
+            }
+        });
+    }
+
+
+
+    function applyAuroraEffect() {
+        const targetElements = [
+            document.querySelector("._13UrL ._23KvS"),
+            document.querySelector("._13UrL ._23KvS ._33DXe"),
+        ];
+        targetElements.forEach(element => {
+            if (element) {
+                const auroraOverlay = document.createElement("div");
+                auroraOverlay.style.position = "absolute";
+                auroraOverlay.style.top = "0";
+                auroraOverlay.style.left = "0";
+                auroraOverlay.style.width = "100%";
+                auroraOverlay.style.height = "100%";
+                auroraOverlay.style.pointerEvents = "none";
+                auroraOverlay.style.zIndex = "10";
+                auroraOverlay.style.overflow = "hidden";
+                element.appendChild(auroraOverlay);
+
+                const numAuroras = 10;
+                for (let i = 0; i < numAuroras; i++) {
+                    const aurora = document.createElement("div");
+                    aurora.className = "aurora";
+                    aurora.style.position = "absolute";
+                    aurora.style.width = "200px";
+                    aurora.style.height = "200px";
+                    aurora.style.background = `radial-gradient(circle at 50%, ${getRandomColor()}, transparent)`;
+                    aurora.style.borderRadius = "50%";
+                    aurora.style.top = `${Math.random() * 100}%`;
+                    aurora.style.left = `${Math.random() * 100}%`;
+                    aurora.style.opacity = Math.random();
+                    aurora.style.animation = `move ${Math.random() * 5 + 5}s ease-in-out infinite`;
+                    auroraOverlay.appendChild(aurora);
+                }
+
+                const styleSheet = document.createElement("style");
+                styleSheet.type = "text/css";
+                styleSheet.innerText = `
+                    @keyframes move {
+                        from {
+                            transform: translateY(0);
+                        }
+                        to {
+                            transform: translateY(100px);
+                        }
+                    }
+                    .aurora {
+                        z-index: 10;
+                        animation: move ease-in-out infinite;
+                    }
+                `;
+                document.head.appendChild(styleSheet);
+            }
+        });
+    }
+    function applyFireflyEffect() {
+        const targetElements = [
+            document.querySelector("._13UrL ._23KvS"),
+            document.querySelector("._13UrL ._23KvS ._33DXe"),
+        ];
+        targetElements.forEach(element => {
+            if (element) {
+                const fireflyOverlay = document.createElement("div");
+                fireflyOverlay.style.position = "absolute";
+                fireflyOverlay.style.top = "0";
+                fireflyOverlay.style.left = "0";
+                fireflyOverlay.style.width = "100%";
+                fireflyOverlay.style.height = "100%";
+                fireflyOverlay.style.pointerEvents = "none";
+                fireflyOverlay.style.zIndex = "10";
+                fireflyOverlay.style.overflow = "hidden";
+                element.appendChild(fireflyOverlay);
+
+                const numFireflies = 50;
+                for (let i = 0; i < numFireflies; i++) {
+                    const firefly = document.createElement("div");
+                    firefly.className = "firefly";
+                    firefly.style.position = "absolute";
+                    firefly.style.width = "5px";
+                    firefly.style.height = "5px";
+                    firefly.style.background = "rgba(255, 255, 0, 0.8)";
+                    firefly.style.borderRadius = "50%";
+                    firefly.style.top = `${Math.random() * 100}%`;
+                    firefly.style.left = `${Math.random() * 100}%`;
+                    firefly.style.opacity = Math.random();
+                    firefly.style.animation = `blink ${Math.random() * 2 + 1}s ease-in-out infinite`;
+                    fireflyOverlay.appendChild(firefly);
+                }
+
+                const styleSheet = document.createElement("style");
+                styleSheet.type = "text/css";
+                styleSheet.innerText = `
+                    @keyframes blink {
+                        0%, 100% {
+                            opacity: 1;
+                        }
+                        50% {
+                            opacity: 0.3;
+                        }
+                    }
+                    .firefly {
+                        z-index: 10;
+                        animation: blink ease-in-out infinite;
+                    }
+                `;
+                document.head.appendChild(styleSheet);
+            }
+        });
+    }
+
+    function applySnowEffect() {
+        const targetElements = [
+            document.querySelector("._13UrL ._23KvS"),
+            document.querySelector("._13UrL ._23KvS ._33DXe"),
+        ];
+        targetElements.forEach(element => {
+            if (element) {
+                const snowOverlay = document.createElement("div");
+                snowOverlay.style.position = "absolute";
+                snowOverlay.style.top = "0";
+                snowOverlay.style.left = "0";
+                snowOverlay.style.width = "100%";
+                snowOverlay.style.height = "100%";
+                snowOverlay.style.pointerEvents = "none";
+                snowOverlay.style.zIndex = "10";
+                snowOverlay.style.overflow = "hidden";
+                element.appendChild(snowOverlay);
+
+                const numSnowflakes = 100;
+                for (let i = 0; i < numSnowflakes; i++) {
+                    const snowflake = document.createElement("div");
+                    snowflake.className = "snowflake";
+                    snowflake.style.position = "absolute";
+                    snowflake.style.background = "rgba(255, 255, 255, 0.8)";
+                    snowflake.style.width = `${Math.random() * 3 + 5}px`;
+                    snowflake.style.height = snowflake.style.width;
+                    snowflake.style.borderRadius = "50%";
+                    snowflake.style.top = `${Math.random() * 100}%`;
+                    snowflake.style.left = `${Math.random() * 100}%`;
+                    snowflake.style.animation = `fall ${Math.random() * 5 + 5}s linear infinite`;
+                    snowOverlay.appendChild(snowflake);
+                }
+
+                const styleSheet = document.createElement("style");
+                styleSheet.type = "text/css";
+                styleSheet.innerText = `
+                    @keyframes fall {
+                        to {
+                            transform: translateY(100vh);
+                        }
+                    }
+                    .snowflake {
+                        z-index: 10;
+                        animation: fall linear infinite;
+                    }
+                `;
+                document.head.appendChild(styleSheet);
+            }
+        });
+    }
+    function applyHazeEffect() {
+        const targetElements = [
+            document.querySelector("._13UrL ._23KvS"),
+            document.querySelector("._13UrL ._23KvS ._33DXe"),
+        ];
+        targetElements.forEach(element => {
+            if (element) {
+                const hazeOverlay = document.createElement("div");
+                hazeOverlay.style.position = "absolute";
+                hazeOverlay.style.top = "0";
+                hazeOverlay.style.left = "0";
+                hazeOverlay.style.width = "100%";
+                hazeOverlay.style.height = "100%";
+                hazeOverlay.style.pointerEvents = "none";
+                hazeOverlay.style.zIndex = "-1";
+                hazeOverlay.style.overflow = "hidden";
+                hazeOverlay.style.background = "rgba(33, 33, 33, 0.3)";
+                hazeOverlay.style.backdropFilter = "blur(10px)";
+                element.appendChild(hazeOverlay);
+            }
+        });
+    }
+
     function getRandomColor() {
-        const colors = ["#00f0ff", "#00cfff", "#00aaff"];
-        return colors[Math.floor(Math.random() * colors.length)];
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
     }
 
     InsertBeforeLoad();
