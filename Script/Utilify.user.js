@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.1
+// @version      4.0.1.1
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -203,7 +203,7 @@
         updateDiv.appendChild(updateMessage);
 
         const versionLink = document.createElement('a');
-        versionLink.href = 'https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js';
+        versionLink.href = 'https://github.com/coffeescrpt/Utilify/raw/main/Script/Utilify.user.js';
         versionLink.textContent = latestVersion;
         versionLink.style.color = '#1E90FF';
         versionLink.style.textDecoration = 'underline';
@@ -224,7 +224,7 @@
     }
 
     function checkForUpdate() {
-        const githubAPIURL = 'https://api.github.com/repos/unreallain/Utilify/contents/Script/Utilify.user.js';
+        const githubAPIURL = 'https://api.github.com/repos/coffeescrpt/Utilify/contents/Script/Utilify.user.js';
 
         fetch(githubAPIURL, {
             headers: {
