@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.1.1
+// @version      4.0.4
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -203,7 +203,7 @@
         updateDiv.appendChild(updateMessage);
 
         const versionLink = document.createElement('a');
-        versionLink.href = 'https://github.com/coffeescrpt/Utilify/raw/main/Script/Utilify.user.js';
+        versionLink.href = 'https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js';
         versionLink.textContent = latestVersion;
         versionLink.style.color = '#1E90FF';
         versionLink.style.textDecoration = 'underline';
@@ -224,7 +224,7 @@
     }
 
     function checkForUpdate() {
-        const githubAPIURL = 'https://api.github.com/repos/coffeescrpt/Utilify/contents/Script/Utilify.user.js';
+        const githubAPIURL = 'https://api.github.com/repos/unreallain/Utilify/contents/Script/Utilify.user.js';
 
         fetch(githubAPIURL, {
             headers: {
@@ -2059,44 +2059,59 @@ GM_addStyle(`
 })();
 (function() {
     'use strict';
-
     const contributorArray = {
-        '50117938': ['contributor'],
-        '668318153': ['contributor'],
-        '17769289': ['contributor'],
-        '20998101': ['contributor'],
-        '17506905': ['contributor'],
-        '36355': ['contributor'],
-        '670185677': ['contributor'],
-        '17660398': ['contributor'],
-        '670193135': ['contributor'],
-        '00000000': ['contributor']
+        '17769289': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_7d305bca6cf371df98c059f9d2ef05e4.png'], // CREATOR PROFILE
+        '670185677': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_5087f7f988bd1b2819cac3e33d0150f5.png'], // DEBUG
+        '670193135': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_b63917c64ad44020d2d5877a4f91907f.png'], // S
+        '50117938': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_d9ff5ff133ed9176895a4a2b5e58f1b8.png'], // R
+        '668318153': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_eb003dc2b5c6d85c8e18cc9336fcdad3.png'], // SR
+        '20998101': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_c3cffc19e9784f7d0b005eecdf1b566e.png'], // RR
+        '17506905': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_d9ff5ff133ed9176895a4a2b5e58f1b8.png'], // F
+        '36355': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_c3cffc19e9784f7d0b005eecdf1b566e.png'], // AW
+        '17660398': ['contributor', 'https://cdn.discordapp.com/avatar-decoration-presets/a_d9ff5ff133ed9176895a4a2b5e58f1b8.png'], //  T
+        '17037147': ['', 'https://cdn.discordapp.com/avatar-decoration-presets/a_48b8411feb1e80a69048fc65b3275b75.png'] // A
     };
 
-    function addBadge() {
+    function addBadgeAndDecoration() {
         const userId = window.location.pathname.split('/')[2];
 
         if (contributorArray[userId]) {
-            const badges = contributorArray[userId];
+            const [badgeType, decorationLink] = contributorArray[userId];
             const observer = new MutationObserver((mutations) => {
                 const profileStatsContainer = document.querySelector('div._2O_AH');
+
                 if (profileStatsContainer) {
                     const badgesContainer = document.createElement('div');
                     badgesContainer.className = 'utilify-badges';
 
-                    badges.forEach(badgeType => {
-                        const badge = document.createElement('img');
-                        badge.style.width = '32px';
-                        badge.style.height = '32px';
-                        badge.style.marginRight = '10px';
-                        badge.style.verticalAlign = 'middle';
-                        if (badgeType === 'contributor') {
-                            badge.src = 'https://i.imgur.com/36hp1pm.gif';
-                            badge.title = 'Official Utilify Contributor. Thank you for your help ♡';
-                        }
-                        badgesContainer.appendChild(badge);
-                    });
+                    const badge = document.createElement('img');
+                    badge.style.width = '32px';
+                    badge.style.height = '32px';
+                    badge.style.marginRight = '10px';
+                    badge.style.verticalAlign = 'middle';
+                    if (badgeType === 'contributor') {
+                        badge.src = 'https://i.imgur.com/36hp1pm.gif';
+                        badge.title = 'Official Utilify Contributor. Thank you for your help ♡';
+                    }
+                    badgesContainer.appendChild(badge);
                     profileStatsContainer.parentNode.insertBefore(badgesContainer, profileStatsContainer.nextSibling);
+                    const profileElement = document.querySelector('div._2bUqU');
+                    if (profileElement) {
+                        const styleTag = document.createElement('style');
+                        styleTag.innerHTML = `
+                            .UA3TP._2bUqU[style*="transform: none"]::before {
+                                content: '';
+                                width: 40px;
+                                height: 40px;
+                                background: url('${decorationLink}') center/cover;
+                                transform: translate(-4px, -2px);
+                                z-index: 99999;
+                                position: absolute;
+                                pointer-events: none;
+                            }
+                        `;
+                        document.head.appendChild(styleTag);
+                    }
 
                     observer.disconnect();
                 }
@@ -2106,7 +2121,7 @@ GM_addStyle(`
         }
     }
 
-    addBadge();
+    addBadgeAndDecoration();
 })()
 ;(function() {
     "use strict";
