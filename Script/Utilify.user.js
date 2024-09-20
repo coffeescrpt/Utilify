@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.4
+// @version      4.0.4.3
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -3964,13 +3964,11 @@ GM_addStyle(`
         return regex.test(gradient)
     }
 })()
-
 ;(function () {
 	"use strict";
 
 	function addCopyButton() {
 		var descriptionDiv = document.querySelector('div[itemprop="description"]');
-
 		if (descriptionDiv) {
 			var copyButton = document.createElement("button");
 			copyButton.textContent = "Copy Description";
@@ -3994,7 +3992,7 @@ GM_addStyle(`
 			});
 
 			copyButton.addEventListener("click", function () {
-				var descriptionText = getDescriptionRawText(descriptionDiv);
+				var descriptionText = getDescriptionFormattedText(descriptionDiv);
 				copyToClipboard(descriptionText);
 				showCustomNotification("Description copied to clipboard!");
 			});
@@ -4002,9 +4000,16 @@ GM_addStyle(`
 			descriptionDiv.appendChild(copyButton);
 		}
 	}
+	function getDescriptionFormattedText(descriptionDiv) {
+		var clonedDiv = descriptionDiv.cloneNode(true);
+		var copyButton = clonedDiv.querySelector("button");
 
-	function getDescriptionRawText(descriptionDiv) {
-		return descriptionDiv.innerText;  // This captures the raw text content ignoring CSS styles
+		if (copyButton) {
+			clonedDiv.removeChild(copyButton);
+		}
+		clonedDiv.querySelectorAll("br").forEach(br => (br.outerHTML = "\n"));
+		clonedDiv.querySelectorAll("p").forEach(p => (p.outerHTML = p.innerText + "\n\n"));
+		return clonedDiv.innerText.trim();
 	}
 
 	function copyToClipboard(text) {
@@ -4044,7 +4049,6 @@ GM_addStyle(`
 
 	window.addEventListener("load", addCopyButton);
 })()
-
 ;(function () {
 	"use strict"
 
