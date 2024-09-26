@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.4.3
+// @version      4.0.6
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -63,8 +63,50 @@
     }
 
     init();
-})()
+})();
+// This snippet is responsible for processing 'old-image-render' in a way that gets rid of blue top to bottom gradient background. THIS FEATURE IS EXPERIMENTAL
+(function() {
+    'use strict';
+    function removeBlueBackground(imageUrl, callback) {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                if (b > 150 && b > r && b > g) {
+                    data[i + 3] = 0;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            const newImageUrl = canvas.toDataURL();
+            callback(newImageUrl);
+        };
+        img.src = imageUrl;
+    }
+    function processImages() {
+        const images = document.querySelectorAll('image._3tYRU');
 
+        images.forEach((imageElement) => {
+            const imageUrl = imageElement.getAttribute('xlink:href');
+            removeBlueBackground(imageUrl, function(newImageUrl) {
+                imageElement.setAttribute('xlink:href', newImageUrl);
+            });
+        });
+    }
+    window.addEventListener('load', function() {
+        processImages();
+    });
+
+})()
 ;(function () {
     'use strict';
     function formatTimestamp(timestamp) {
@@ -176,6 +218,9 @@
 ;(function() {
     'use strict';
 
+    const CHECK_INTERVAL_HOURS = 24; // check for available update once ever 24 hours
+    const LAST_CHECK_KEY = 'lastUpdateCheck';
+
     function getCurrentVersion() {
         return GM_info.script.version;
     }
@@ -184,7 +229,7 @@
         const updateDiv = document.createElement('div');
         updateDiv.id = 'update-notification';
         updateDiv.style.position = 'fixed';
-        updateDiv.style.top = '-100px'
+        updateDiv.style.top = '-100px';
         updateDiv.style.left = '50%';
         updateDiv.style.transform = 'translateX(-50%)';
         updateDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
@@ -203,7 +248,7 @@
         updateDiv.appendChild(updateMessage);
 
         const versionLink = document.createElement('a');
-        versionLink.href = 'https://github.com/unreallain/Utilify/raw/main/Script/Utilify.user.js';
+        versionLink.href = 'https://github.com/coffeescrpt/Utilify/raw/main/Script/Utilify.user.js';
         versionLink.textContent = latestVersion;
         versionLink.style.color = '#1E90FF';
         versionLink.style.textDecoration = 'underline';
@@ -224,7 +269,7 @@
     }
 
     function checkForUpdate() {
-        const githubAPIURL = 'https://api.github.com/repos/unreallain/Utilify/contents/Script/Utilify.user.js';
+        const githubAPIURL = 'https://api.github.com/repos/coffeescrpt/Utilify/contents/Script/Utilify.user.js';
 
         fetch(githubAPIURL, {
             headers: {
@@ -253,7 +298,28 @@
         .catch(err => console.error("Error fetching the script:", err));
     }
 
-    checkForUpdate();
+    function shouldCheckForUpdate() {
+        const lastCheck = localStorage.getItem(LAST_CHECK_KEY);
+        if (lastCheck) {
+            const lastCheckTime = new Date(parseInt(lastCheck, 10));
+            const currentTime = new Date();
+            const hoursSinceLastCheck = (currentTime - lastCheckTime) / (1000 * 60 * 60);
+            return hoursSinceLastCheck >= CHECK_INTERVAL_HOURS;
+        }
+        return true; // If no check-record, do it
+    }
+
+    function updateLastCheckTime() {
+        localStorage.setItem(LAST_CHECK_KEY, Date.now().toString());
+    }
+
+    if (shouldCheckForUpdate()) {
+        checkForUpdate();
+        updateLastCheckTime();
+    } else {
+        console.log('Update check skipped: Less than 24 hours since last check.');
+    }
+
 })()
 ;(function() {
     "use strict";
@@ -3964,11 +4030,13 @@ GM_addStyle(`
         return regex.test(gradient)
     }
 })()
+
 ;(function () {
 	"use strict";
 
 	function addCopyButton() {
 		var descriptionDiv = document.querySelector('div[itemprop="description"]');
+
 		if (descriptionDiv) {
 			var copyButton = document.createElement("button");
 			copyButton.textContent = "Copy Description";
@@ -3992,7 +4060,7 @@ GM_addStyle(`
 			});
 
 			copyButton.addEventListener("click", function () {
-				var descriptionText = getDescriptionFormattedText(descriptionDiv);
+				var descriptionText = getDescriptionRawText(descriptionDiv);
 				copyToClipboard(descriptionText);
 				showCustomNotification("Description copied to clipboard!");
 			});
@@ -4000,16 +4068,9 @@ GM_addStyle(`
 			descriptionDiv.appendChild(copyButton);
 		}
 	}
-	function getDescriptionFormattedText(descriptionDiv) {
-		var clonedDiv = descriptionDiv.cloneNode(true);
-		var copyButton = clonedDiv.querySelector("button");
 
-		if (copyButton) {
-			clonedDiv.removeChild(copyButton);
-		}
-		clonedDiv.querySelectorAll("br").forEach(br => (br.outerHTML = "\n"));
-		clonedDiv.querySelectorAll("p").forEach(p => (p.outerHTML = p.innerText + "\n\n"));
-		return clonedDiv.innerText.trim();
+	function getDescriptionRawText(descriptionDiv) {
+		return descriptionDiv.innerText;  // This captures the raw text content ignoring CSS styles
 	}
 
 	function copyToClipboard(text) {
@@ -4049,6 +4110,7 @@ GM_addStyle(`
 
 	window.addEventListener("load", addCopyButton);
 })()
+
 ;(function () {
 	"use strict"
 
