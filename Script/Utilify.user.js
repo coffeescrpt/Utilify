@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.6
+// @version      4.0.6.1
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -67,6 +67,18 @@
 // This snippet is responsible for processing 'old-image-render' in a way that gets rid of blue top to bottom gradient background. THIS FEATURE IS EXPERIMENTAL
 (function() {
     'use strict';
+    const ignoredRGB = [
+        [70, 175, 251],
+        [66, 128, 255],
+        [30, 144, 255],
+        [100, 149, 237]
+
+    ];
+
+    function isIgnoredColor(r, g, b) {
+        return ignoredRGB.some(color => color[0] === r && color[1] === g && color[2] === b);
+    }
+
     function removeBlueBackground(imageUrl, callback) {
         const img = new Image();
         img.crossOrigin = "Anonymous";
@@ -82,7 +94,8 @@
                 const r = data[i];
                 const g = data[i + 1];
                 const b = data[i + 2];
-                if (b > 150 && b > r && b > g) {
+
+                if (!isIgnoredColor(r, g, b) && b > 150 && b > r && b > g) {
                     data[i + 3] = 0;
                 }
             }
@@ -92,9 +105,9 @@
         };
         img.src = imageUrl;
     }
+
     function processImages() {
         const images = document.querySelectorAll('image._3tYRU');
-
         images.forEach((imageElement) => {
             const imageUrl = imageElement.getAttribute('xlink:href');
             removeBlueBackground(imageUrl, function(newImageUrl) {
@@ -102,6 +115,7 @@
             });
         });
     }
+
     window.addEventListener('load', function() {
         processImages();
     });
@@ -321,8 +335,20 @@
     }
 
 })()
+// ==UserScript==
+// @name         Add Custom Login Button
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Adds a custom login button next to the existing one
+// @author       Your Name
+// @match        https://www.kogama.com/*
+// @grant        GM_addStyle
+// @run-at       document-end
+// ==/UserScript==
+
 ;(function() {
     "use strict";
+
     function createElement(tag, attributes, ...children) {
         const element = document.createElement(tag);
         for (let key in attributes) {
@@ -337,18 +363,15 @@
         }
         return element;
     }
-    function removeElement(selector) {
-        const element = document.querySelector(selector);
-        if (element) {
-            element.remove();
-        }
-    }
+
     function createCustomLogin() {
         const loginButton = document.querySelector("#login-button");
+
         if (loginButton && !document.querySelector("#custom-login-button")) {
-            const metaNav = document.querySelector("#meta-nav");
-            if (metaNav) {
-                loginButton.parentElement.remove();
+            const navElement = document.querySelector("#nav-bar > .MuiPaper-root.MuiAppBar-root.MuiAppBar-positionStatic.MuiAppBar-colorPrimary._1q4mD.MuiPaper-elevation0 > .MuiToolbar-root.MuiToolbar-dense._1sUGu.MuiToolbar-gutters > ._3hI0M");
+
+            if (navElement) {
+                // Create the custom login button
                 const customLoginButton = createElement(
                     "button",
                     {
@@ -356,14 +379,13 @@
                         class: "custom-login-button",
                         "aria-label": "Custom Login"
                     },
-                    "Login"
-                );
-                const signupButton = document.querySelector("#signup-button");
-                metaNav.insertBefore(
-                    createElement("li", { class: "login" }, customLoginButton),
-                    signupButton.parentElement
+                    "ULogin" // Text for the new button
                 );
 
+                // Insert the custom login button to the left of the original login button
+                navElement.insertBefore(customLoginButton, loginButton);
+
+                // Add event listener to the custom button
                 customLoginButton.addEventListener("click", () => {
                     if (document.querySelector("#custom-login-form")) return;
 
@@ -572,114 +594,17 @@
         }
     }
 
-    function debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-    }
-
-    const throttledCreateCustomLogin = debounce(createCustomLogin, 210);
+    setTimeout(createCustomLogin, 2700); // Delay of 2700ms before running the function
 
     const observer = new MutationObserver(mutationsList => {
         for (let mutation of mutationsList) {
             if (mutation.type === "childList") {
-                throttledCreateCustomLogin();
+                setTimeout(createCustomLogin, 2700); // Delay for DOM changes
             }
         }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-
-    // Add CSS styles
-    GM_addStyle(`
-        .custom-login-button {
-            background-color: #4a148c;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            cursor: pointer;
-            font-size: 18px;
-            border-radius: 6px;
-            transition: background-color 0.3s ease;
-        }
-        .custom-login-button:hover {
-            background-color: #6a1b9a;
-        }
-        .login-form {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #1a1a2e;
-            padding: 20px;
-            border: 1px solid #3f3f5f;
-            border-radius: 12px;
-            width: 450px;
-            z-index: 9999;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .input-field {
-            background: #2b2b3a;
-            color: #e0e0e0;
-            border: 1px solid #3f3f5f;
-            padding: 12px;
-            margin-bottom: 12px;
-            width: 100%;
-            border-radius: 6px;
-        }
-        .action-button {
-            background-color: #6a1b9a;
-            color: white;
-            border: none;
-            padding: 12px;
-            cursor: pointer;
-            font-size: 18px;
-            border-radius: 6px;
-            margin: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .action-button:hover {
-            background-color: #8e24aa;
-        }
-        .close-button {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .error-display {
-            color: #ff4d4d;
-            font-size: 16px;
-            margin-top: 12px;
-        }
-        .info-text {
-            color: #b0bec5;
-            font-size: 16px;
-            margin-top: 12px;
-            text-align: center;
-        }
-        .dropdown-container {
-            width: 100%;
-            margin-bottom: 12px;
-        }
-        .dropdown {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #3f3f5f;
-            background: #2b2b3a;
-            color: #e0e0e0;
-            border-radius: 6px;
-        }
-    `);
 })()
 ;(function() {
     const patterns = {
@@ -1875,16 +1800,19 @@ GM_addStyle(`
     "use strict";
 
     GM_addStyle(`
-        .menu-label {
-            display: inline-flex;
-            align-items: center;
-            color: #e8e8e8;
-            cursor: pointer;
-            font-weight: 400;
-            margin-top: 16px;
-            margin-left: 6px;
-            position: relative;
-        }
+.menu-label {
+    display: inline-flex;
+    align-items: center;
+    color: #e8e8e8;
+    cursor: pointer;
+    font-weight: 400;
+    margin-top: 1px !important;
+    margin-left: 10px !important;
+    bottom: 3px;
+    position: relative;
+    z-index: 100;
+}
+
         .menu-label::after {
             content: '';
             display: inline-block;
@@ -1938,7 +1866,7 @@ GM_addStyle(`
             max-width: 700px;
             max-height: 80vh;
             overflow-y: auto;
-    background-color: rgba(0, 0, 0, 0.6); /* Darker, more opaque background */
+            background-color: rgba(0, 0, 0, 0.6);
             color: #fff;
             backdrop-filter: blur(8px);
             padding: 20px;
@@ -1986,75 +1914,79 @@ GM_addStyle(`
     menuLabel.className = "menu-label";
     menuLabel.textContent = "Utilify";
 
-    var header = document.querySelector("#pageheader > .pageheader-inner");
+    setTimeout(function() {
+        var header = document.querySelector("#nav-bar > .MuiPaper-root.MuiAppBar-root.MuiAppBar-positionStatic.MuiAppBar-colorPrimary._1q4mD.MuiPaper-elevation0 > .MuiToolbar-root.MuiToolbar-dense._1sUGu.MuiToolbar-gutters > ._2mwlM > ._290sk");
 
-    if (header) {
-        header.appendChild(menuLabel);
+        if (header) {
+            var marketplaceLink = header.querySelector('a[href="/marketplace/"]');
+            marketplaceLink.insertAdjacentElement('afterend', menuLabel);
 
-        var expandedMenu = document.createElement("div");
-        expandedMenu.className = "expanded-menu";
+            var expandedMenu = document.createElement("div");
+            expandedMenu.className = "expanded-menu";
 
-        var menuButtons = document.createElement("div");
-        menuButtons.className = "menu-buttons";
+            var menuButtons = document.createElement("div");
+            menuButtons.className = "menu-buttons";
 
-        var gradientButton = document.createElement("button");
-        gradientButton.textContent = "Adjust Gradient";
-        gradientButton.addEventListener("click", function() {
-            window.location.href = window.location.href + "/gradient";
-        });
+            var gradientButton = document.createElement("button");
+            gradientButton.textContent = "Adjust Gradient";
+            gradientButton.addEventListener("click", function() {
+                window.location.href = window.location.href + "/gradient";
+            });
 
-        var autoblockingButton = document.createElement("button");
-        autoblockingButton.textContent = "Blocking Tool";
-        autoblockingButton.addEventListener("click", function() {
-            window.location.href = window.location.href + "/autoblocking";
-        });
+            var autoblockingButton = document.createElement("button");
+            autoblockingButton.textContent = "Blocking Tool";
+            autoblockingButton.addEventListener("click", function() {
+                window.location.href = window.location.href + "/autoblocking";
+            });
 
-        var masspurchaseButton = document.createElement("button");
-        masspurchaseButton.textContent = "Marketplace Tool";
-        masspurchaseButton.addEventListener("click", function() {
-            window.location.href = window.location.href + "/masspurchase";
-        });
+            var masspurchaseButton = document.createElement("button");
+            masspurchaseButton.textContent = "Marketplace Tool";
+            masspurchaseButton.addEventListener("click", function() {
+                window.location.href = window.location.href + "/masspurchase";
+            });
 
-        var settingsButton = document.createElement("button");
-        settingsButton.textContent = "General Config";
-        settingsButton.addEventListener("click", function() {
-            window.location.href = window.location.href + "/config";
-        });
+            var settingsButton = document.createElement("button");
+            settingsButton.textContent = "General Config";
+            settingsButton.addEventListener("click", function() {
+                window.location.href = window.location.href + "/config";
+            });
 
-        var featuresButton = document.createElement("button");
-        featuresButton.textContent = "Features";
-        featuresButton.addEventListener("click", function() {
-            document.querySelector(".features-page").style.display = "block";
-        });
+            var featuresButton = document.createElement("button");
+            featuresButton.textContent = "Features";
+            featuresButton.addEventListener("click", function() {
+                document.querySelector(".features-page").style.display = "block";
+            });
 
-        menuButtons.appendChild(gradientButton);
-        menuButtons.appendChild(masspurchaseButton);
-        menuButtons.appendChild(autoblockingButton);
-        menuButtons.appendChild(settingsButton);
-        menuButtons.appendChild(featuresButton);
+            menuButtons.appendChild(gradientButton);
+            menuButtons.appendChild(masspurchaseButton);
+            menuButtons.appendChild(autoblockingButton);
+            menuButtons.appendChild(settingsButton);
+            menuButtons.appendChild(featuresButton);
 
-        expandedMenu.appendChild(menuButtons);
-        header.appendChild(expandedMenu);
+            expandedMenu.appendChild(menuButtons);
+            header.appendChild(expandedMenu);
 
-        menuLabel.addEventListener("mouseenter", function() {
-            var labelRect = menuLabel.getBoundingClientRect();
-            var headerRect = header.getBoundingClientRect();
-            expandedMenu.style.left = labelRect.left - headerRect.left + "px";
-            expandedMenu.style.top = labelRect.bottom - headerRect.top + 10 + "px";
-            expandedMenu.classList.add("show");
-        });
+            menuLabel.addEventListener("mouseenter", function() {
+                var labelRect = menuLabel.getBoundingClientRect();
+                var headerRect = header.getBoundingClientRect();
+                expandedMenu.style.left = labelRect.left - headerRect.left + "px";
+                expandedMenu.style.top = labelRect.bottom - headerRect.top + 10 + "px";
+                expandedMenu.classList.add("show");
+            });
 
-        expandedMenu.addEventListener("mouseleave", function() {
-            expandedMenu.classList.remove("show");
-        });
-    } else {
-        console.error("Header element not found!");
-    }
-    var featuresPage = document.createElement("div");
-    featuresPage.className = "features-page";
-    featuresPage.innerHTML = `
-        <button class="close">Close</button>
-        <h1>Features</h1>
+            expandedMenu.addEventListener("mouseleave", function() {
+                expandedMenu.classList.remove("show");
+            });
+        } else {
+            console.error("Header element not found!");
+        }
+
+        // Features page creation
+        var featuresPage = document.createElement("div");
+        featuresPage.className = "features-page";
+        featuresPage.innerHTML = `
+            <button class="close">Close</button>
+            <h1>Features</h1>
         <p>
             Here are some of the features available:
             <br><br>
@@ -2116,12 +2048,12 @@ GM_addStyle(`
             <ufc>ViewDMLog:</ufc> Allows you to export message log of direct chats (dms).
             <br><br>
         </p>
-    `;
-    document.body.appendChild(featuresPage);
-    document.querySelector(".features-page .close").addEventListener("click", function() {
-        featuresPage.style.display = "none";
-    });
-
+        `;
+        document.body.appendChild(featuresPage);
+        document.querySelector(".features-page .close").addEventListener("click", function() {
+            featuresPage.style.display = "none";
+        });
+    }, 2700);
 })();
 (function() {
     'use strict';
@@ -4042,21 +3974,25 @@ GM_addStyle(`
 			copyButton.textContent = "Copy Description";
 			copyButton.style.display = "block";
 			copyButton.style.marginTop = "10px";
-			copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+			copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
+            copyButton.backdropFilter = "blur(8px)";
 			copyButton.style.boxShadow =
 				"0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1)";
 			copyButton.style.backdropFilter = "blur(10px)";
+            copyButton.style.color = '#ffff';
 			copyButton.style.borderRadius = "8px";
+            copyButton.style.height = '40px';
+            copyButton.style.width = '170px';
 			copyButton.style.marginBottom = "10px";
 
 			copyButton.addEventListener("mouseenter", function () {
 				copyButton.style.transition = "background-color 0.3s ease-in-out";
-				copyButton.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+				copyButton.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
 			});
 
 			copyButton.addEventListener("mouseleave", function () {
 				copyButton.style.transition = "background-color 0.3s ease-in-out";
-				copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+				copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
 			});
 
 			copyButton.addEventListener("click", function () {
@@ -4762,34 +4698,29 @@ GM_addStyle(`
 
     InsertBeforeLoad();
 })();
+(function() {
+    'use strict';
+    function hideMenuItems() {
+        const menuItemsToHide = [
+            '/news/',
+            '/leaderboard/',
+            '/subscription/subscribe/',
+            '/purchase/'
+        ];
+        const menuLinks = document.querySelectorAll('a.MuiTypography-root');
 
-function removeElementsByClass(className) {
-	var elements = document.querySelectorAll(className)
-	elements.forEach(function (element) {
-		element.remove()
-	})
-}
+        menuLinks.forEach(link => {
+            if (menuItemsToHide.includes(link.getAttribute('href'))) {
+                const parentLi = link.closest('li');
+                if (parentLi) {
+                    parentLi.style.display = 'none';
+                }
+            }
+        });
+    }
+    window.addEventListener('load', hideMenuItems);
 
-window.addEventListener("load", function () {
-	removeElementsByClass(".news")
-	removeElementsByClass(".subscription")
-	removeElementsByClass(".purchase")
-
-	var observer = new MutationObserver(function (mutationsList) {
-		mutationsList.forEach(function (mutation) {
-			if (mutation.type === "childList") {
-				removeElementsByClass(".news")
-				removeElementsByClass(".subscription")
-				removeElementsByClass(".purchase")
-			}
-		})
-	})
-
-	var targetNode = document.body
-	var config = { childList: true, subtree: true }
-
-	observer.observe(targetNode, config)
-})
+})()
 const injectCss = (id, css) => {
 	const style = document.createElement("style")
 	style.id = id
@@ -4813,7 +4744,7 @@ const injectCss = (id, css) => {
                                 if (response.data.hasOwnProperty(key)) {
                                     const messages = response.data[key];
 
-                                    if (Array.isArray(messages)) { // Check if it's an array
+                                    if (Array.isArray(messages)) {
                                         messages.forEach(message => {
                                             const {
                                                 from_profile_id,
@@ -4827,7 +4758,6 @@ const injectCss = (id, css) => {
                                             }
                                         });
                                     } else {
-                                        // You can handle unexpected structures here if needed
                                     }
                                 }
                             }
