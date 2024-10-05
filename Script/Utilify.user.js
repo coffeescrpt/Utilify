@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.6.1
+// @version      4.0.6.4
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
@@ -121,7 +121,236 @@
     });
 
 })()
-;(function () {
+;
+
+(function() {
+    'use strict';
+    function createModal() {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '9999';
+        modal.style.transition = 'opacity 0.3s ease';
+        modal.style.opacity = '1';
+
+        const modalContent = document.createElement('div');
+        modalContent.style.backgroundColor = '#1a1a1a';
+        modalContent.style.color = '#fff';
+        modalContent.style.padding = '40px';
+        modalContent.style.borderRadius = '8px';
+        modalContent.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.2)';
+        modalContent.style.width = '500px';
+        modalContent.style.height = '400px';
+        modalContent.style.textAlign = 'center';
+        modalContent.style.position = 'relative';
+
+        const errorDisplay = document.createElement('div');
+        errorDisplay.style.color = 'red';
+        errorDisplay.style.marginBottom = '20px';
+        errorDisplay.style.display = 'none';
+
+        const dropdown = document.createElement('select');
+        dropdown.style.width = '100%';
+        dropdown.style.marginBottom = '20px';
+        dropdown.style.padding = '10px';
+        dropdown.style.borderRadius = '4px';
+        dropdown.style.backgroundColor = '#2a2a2a';
+        dropdown.style.color = '#fff';
+        dropdown.style.border = '1px solid #444';
+        dropdown.innerHTML = '<option value="">Select Account</option>';
+
+        const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+        accounts.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account.username;
+            option.textContent = account.username;
+            dropdown.appendChild(option);
+        });
+
+        const usernameInput = document.createElement('input');
+        usernameInput.placeholder = 'Username';
+        usernameInput.style.width = '100%';
+        usernameInput.style.marginBottom = '20px';
+        usernameInput.style.padding = '10px';
+        usernameInput.style.borderRadius = '4px';
+        usernameInput.style.border = '1px solid #ccc';
+        usernameInput.style.backgroundColor = '#2a2a2a';
+        usernameInput.style.color = '#fff';
+        usernameInput.autocomplete = 'off';
+
+        const passwordInput = document.createElement('input');
+        passwordInput.type = 'password';
+        passwordInput.placeholder = 'Password';
+        passwordInput.style.width = '100%';
+        passwordInput.style.marginBottom = '20px';
+        passwordInput.style.padding = '10px';
+        passwordInput.style.borderRadius = '4px';
+        passwordInput.style.border = '1px solid #ccc';
+        passwordInput.style.backgroundColor = '#2a2a2a';
+        passwordInput.style.color = '#fff';
+        passwordInput.autocomplete = 'off';
+
+        const addAccountButton = document.createElement('button');
+        addAccountButton.textContent = 'Add Account';
+        addAccountButton.style.padding = '10px 20px';
+        addAccountButton.style.backgroundColor = '#61dafb';
+        addAccountButton.style.color = '#1a1a1a';
+        addAccountButton.style.border = 'none';
+        addAccountButton.style.borderRadius = '4px';
+        addAccountButton.style.cursor = 'pointer';
+        addAccountButton.style.marginRight = '10px';
+        addAccountButton.style.transition = 'background-color 0.3s';
+        addAccountButton.addEventListener('mouseover', () => {
+            addAccountButton.style.backgroundColor = '#21a1f1';
+        });
+
+        addAccountButton.addEventListener('mouseout', () => {
+            addAccountButton.style.backgroundColor = '#61dafb';
+        });
+        const loginButton = document.createElement('button');
+        loginButton.textContent = 'Login';
+        loginButton.style.padding = '10px 20px';
+        loginButton.style.backgroundColor = '#4caf50';
+        loginButton.style.color = '#1a1a1a';
+        loginButton.style.border = 'none';
+        loginButton.style.borderRadius = '4px';
+        loginButton.style.cursor = 'pointer';
+        loginButton.style.transition = 'background-color 0.3s';
+        loginButton.addEventListener('mouseover', () => {
+            loginButton.style.backgroundColor = '#388e3c';
+        });
+
+        loginButton.addEventListener('mouseout', () => {
+            loginButton.style.backgroundColor = '#4caf50';
+        });
+        addAccountButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (username && password) {
+                const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+                if (accounts.length >= 8) {
+                    accounts.shift();
+                }
+
+                accounts.push({ username, password });
+                localStorage.setItem('accounts', JSON.stringify(accounts));
+
+                const option = document.createElement('option');
+                option.value = username;
+                option.textContent = username;
+                dropdown.appendChild(option);
+                usernameInput.value = '';
+                passwordInput.value = '';
+            } else {
+                alert('Please enter both username and password.');
+            }
+        });
+        const performLogin = (username, password) => {
+            fetch("https://www.kogama.com/auth/login/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password }),
+                credentials: "include"
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    window.location.href = "https://www.kogama.com/profile/me";
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (data && data.error) {
+                    let errorMessage = "Login failed.";
+                    if (data.error.__all__) {
+                        const detailedError = data.error.__all__[0];
+                        if (detailedError.includes("banned")) {
+                            errorMessage = "Account banned.";
+                            const remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
+                            const remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
+                            errorDisplay.innerHTML = `
+                                <div>Account banned.</div>
+                                <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
+                            `;
+                            errorDisplay.title = detailedError.split("due to:")[1].split("\n")[0].trim();
+                        } else {
+                            errorMessage = "Inappropriate username or password.";
+                        }
+                    }
+                    errorDisplay.textContent = errorMessage;
+                    errorDisplay.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                errorDisplay.style.display = "block";
+                errorDisplay.textContent = "Network error. Please try again later.";
+            });
+        };
+        loginButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (username && password) {
+                performLogin(username, password);
+            }
+        });
+        dropdown.addEventListener('change', (event) => {
+            const selectedUsername = event.target.value;
+            const account = accounts.find(acc => acc.username === selectedUsername);
+            if (account) {
+                performLogin(account.username, account.password);
+            }
+        });
+        modalContent.appendChild(errorDisplay);
+        modalContent.appendChild(dropdown);
+        modalContent.appendChild(usernameInput);
+        modalContent.appendChild(passwordInput);
+        modalContent.appendChild(addAccountButton);
+        modalContent.appendChild(loginButton);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
+
+    function addLoginButtonToNavbar() {
+        const loginButton = document.querySelector('#nav-bar .MuiButton-root.MuiButton-text');
+
+        if (loginButton) {
+            const loginPlusButton = document.createElement('div');
+            loginPlusButton.textContent = 'Login+';
+            loginPlusButton.style.marginLeft = '10px';
+            loginPlusButton.style.padding = '10px 15px';
+            loginPlusButton.style.backgroundColor = 'transparent';
+            loginPlusButton.style.color = '#fff';
+            loginPlusButton.style.textShadow = '0 0 3px #fff';
+            loginPlusButton.style.borderRadius = '5px';
+            loginPlusButton.style.cursor = 'pointer';
+            loginPlusButton.style.zIndex = '10000';
+            loginPlusButton.style.display = 'inline-block';
+            loginPlusButton.addEventListener('click', createModal);
+            loginButton.parentNode.insertBefore(loginPlusButton, loginButton.nextSibling);
+        }
+    }
+    setTimeout(addLoginButtonToNavbar, 1000);
+})()
+;
+(function () {
     'use strict';
     function formatTimestamp(timestamp) {
         const date = new Date(timestamp);
@@ -320,7 +549,7 @@
             const hoursSinceLastCheck = (currentTime - lastCheckTime) / (1000 * 60 * 60);
             return hoursSinceLastCheck >= CHECK_INTERVAL_HOURS;
         }
-        return true; // If no check-record, do it
+        return true;
     }
 
     function updateLastCheckTime() {
@@ -335,278 +564,8 @@
     }
 
 })()
-// ==UserScript==
-// @name         Add Custom Login Button
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Adds a custom login button next to the existing one
-// @author       Your Name
-// @match        https://www.kogama.com/*
-// @grant        GM_addStyle
-// @run-at       document-end
-// ==/UserScript==
-
-;(function() {
-    "use strict";
-
-    function createElement(tag, attributes, ...children) {
-        const element = document.createElement(tag);
-        for (let key in attributes) {
-            element.setAttribute(key, attributes[key]);
-        }
-        for (let child of children) {
-            if (typeof child === "string") {
-                element.appendChild(document.createTextNode(child));
-            } else {
-                element.appendChild(child);
-            }
-        }
-        return element;
-    }
-
-    function createCustomLogin() {
-        const loginButton = document.querySelector("#login-button");
-
-        if (loginButton && !document.querySelector("#custom-login-button")) {
-            const navElement = document.querySelector("#nav-bar > .MuiPaper-root.MuiAppBar-root.MuiAppBar-positionStatic.MuiAppBar-colorPrimary._1q4mD.MuiPaper-elevation0 > .MuiToolbar-root.MuiToolbar-dense._1sUGu.MuiToolbar-gutters > ._3hI0M");
-
-            if (navElement) {
-                // Create the custom login button
-                const customLoginButton = createElement(
-                    "button",
-                    {
-                        id: "custom-login-button",
-                        class: "custom-login-button",
-                        "aria-label": "Custom Login"
-                    },
-                    "ULogin" // Text for the new button
-                );
-
-                // Insert the custom login button to the left of the original login button
-                navElement.insertBefore(customLoginButton, loginButton);
-
-                // Add event listener to the custom button
-                customLoginButton.addEventListener("click", () => {
-                    if (document.querySelector("#custom-login-form")) return;
-
-                    const usernameInput = createElement("input", {
-                        type: "text",
-                        id: "custom-username",
-                        placeholder: "Username",
-                        class: "input-field"
-                    });
-
-                    const passwordInput = createElement("input", {
-                        type: "password",
-                        id: "custom-password",
-                        placeholder: "Password",
-                        class: "input-field"
-                    });
-
-                    const errorDisplay = createElement("div", {
-                        id: "custom-login-error",
-                        class: "error-display"
-                    });
-
-                    const addAccountButton = createElement("button", {
-                        id: "add-account-button",
-                        class: "action-button"
-                    }, "Add Account");
-
-                    const loginButton = createElement("button", {
-                        id: "login-button",
-                        class: "action-button"
-                    }, "Login");
-
-                    const loginForm = createElement(
-                        "div",
-                        {
-                            id: "custom-login-form",
-                            class: "login-form"
-                        },
-                        createElement("button", {
-                            id: "close-login-form",
-                            class: "close-button",
-                            title: "Close"
-                        }, "✕"),
-                        createElement("div", {
-                            id: "last-accounts",
-                            class: "dropdown-container"
-                        }),
-                        usernameInput,
-                        passwordInput,
-                        addAccountButton,
-                        loginButton,
-                        errorDisplay,
-                        createElement("div", {
-                            id: "info-text",
-                            class: "info-text"
-                        }, "If you encounter issues registering while using Utilify, please disable it.")
-                    );
-
-                    document.body.appendChild(loginForm);
-
-                    document.querySelector("#close-login-form").addEventListener("click", () => {
-                        document.querySelector("#custom-login-form").remove();
-                    });
-
-                    addAccountButton.addEventListener("click", () => {
-                        const username = usernameInput.value;
-                        const password = passwordInput.value;
-                        const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-                        const existingAccountIndex = accounts.findIndex(
-                            acc => acc.username === username
-                        );
-                        if (existingAccountIndex === -1) {
-                            accounts.push({ username, password });
-                            if (accounts.length > 8) accounts.shift(); // 8 - Max account held
-                            localStorage.setItem("accounts", JSON.stringify(accounts));
-                            displayLastAccounts();
-                        }
-                    });
-
-                    loginButton.addEventListener("click", () => {
-                        const username = usernameInput.value;
-                        const password = passwordInput.value;
-
-                        fetch("https://www.kogama.com/auth/login/", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({ username, password }),
-                            credentials: "include"
-                        })
-                        .then(response => {
-                            if (response.status === 200) {
-                                window.location.href = "https://www.kogama.com/profile/me";
-                            } else {
-                                return response.json();
-                            }
-                        })
-                        .then(data => {
-                            if (data && data.error) {
-                                let errorMessage = "Login failed.";
-                                if (data.error.__all__) {
-                                    const detailedError = data.error.__all__[0];
-                                    if (detailedError.includes("banned")) {
-                                        errorMessage = "Account banned.";
-                                        const remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
-                                        const remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
-                                        errorDisplay.innerHTML = `
-                                            <div>Account banned.</div>
-                                            <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
-                                        `;
-                                        errorDisplay.title = detailedError.split("due to:")[1].split("\n")[0].trim();
-                                    } else {
-                                        errorMessage = "Inappropriate Username or password.";
-                                    }
-                                }
-                                if (!data.error.__all__ || !data.error.__all__[0].includes("banned")) {
-                                    errorDisplay.textContent = errorMessage;
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error:", error);
-                            errorDisplay.style.display = "block";
-                            errorDisplay.textContent = "Network error. Please try again later.";
-                        });
-                    });
-
-                    function displayLastAccounts() {
-                        const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-                        const lastAccountsDropdown = document.querySelector("#last-accounts");
-                        lastAccountsDropdown.innerHTML = ""; // Clear existing options
-
-                        const dropdown = createElement("select", {
-                            id: "last-accounts-dropdown",
-                            class: "dropdown"
-                        });
-                        const defaultOption = createElement("option", { value: "" }, "Select an account");
-                        dropdown.appendChild(defaultOption);
-
-                        accounts.forEach(account => {
-                            const accountOption = createElement(
-                                "option",
-                                { value: JSON.stringify(account) },
-                                account.username
-                            );
-                            dropdown.appendChild(accountOption);
-                        });
-
-                        dropdown.addEventListener("change", function() {
-                            const selectedAccount = JSON.parse(this.value);
-                            if (selectedAccount) {
-                                const { username, password } = selectedAccount;
-
-                                fetch("https://www.kogama.com/auth/login/", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify({ username, password }),
-                                    credentials: "include"
-                                })
-                                .then(response => {
-                                    if (response.status === 200) {
-                                        window.location.href = "https://www.kogama.com/profile/me";
-                                    } else {
-                                        return response.json();
-                                    }
-                                })
-                                .then(data => {
-                                    if (data && data.error) {
-                                        let errorMessage = "Login failed.";
-                                        if (data.error.__all__) {
-                                            const detailedError = data.error.__all__[0];
-                                            if (detailedError.includes("banned")) {
-                                                errorMessage = "Account banned.";
-                                                const remainingTimeMatch = detailedError.match(/You'll remain banned for another ([\d\D]+)\./);
-                                                const remainingTime = remainingTimeMatch ? remainingTimeMatch[1].trim() : '';
-                                                errorDisplay.innerHTML = `
-                                                    <div>Account banned.</div>
-                                                    <div style="color: darkorange;">${remainingTime ? `${remainingTime} left` : ''}</div>
-                                                `;
-                                                errorDisplay.title = detailedError.split("due to:")[1].split("\n")[0].trim();
-                                            } else {
-                                                errorMessage = "Inappropriate Username or password.";
-                                            }
-                                        }
-                                        if (!data.error.__all__ || !data.error.__all__[0].includes("banned")) {
-                                            errorDisplay.textContent = errorMessage;
-                                        }
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error("Error:", error);
-                                    errorDisplay.style.display = "block";
-                                    errorDisplay.textContent = "Network error. Please try again later.";
-                                });
-                            }
-                        });
-
-                        lastAccountsDropdown.appendChild(dropdown);
-                    }
-                    displayLastAccounts();
-                });
-            }
-        }
-    }
-
-    setTimeout(createCustomLogin, 2700); // Delay of 2700ms before running the function
-
-    const observer = new MutationObserver(mutationsList => {
-        for (let mutation of mutationsList) {
-            if (mutation.type === "childList") {
-                setTimeout(createCustomLogin, 2700); // Delay for DOM changes
-            }
-        }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-})()
-;(function() {
+;
+(function() {
     const patterns = {
         bold: /\*\*(.*?)\*\*/g,
         italic: /\*(.*?)\*/g,
@@ -718,7 +677,8 @@
 
     init();
 })()
-;(function() {
+;
+(function() {
     'use strict';
 
     const currentURL = window.location.href;
@@ -1599,7 +1559,7 @@ GM_addStyle(`
 	}
 
 	function addButtonsToAvatar(avatar) {
-		if (avatar.querySelector(".marketplace-button")) {
+		if (avatar.querySelector(".rf76-0v")) {
 			return
 		}
 		const avatarNameElement = avatar.querySelector("._2uIZL")
@@ -1610,39 +1570,50 @@ GM_addStyle(`
 		const imageUrlMatch = backgroundImageStyle.match(/url\("([^"]+)"\)/)
 		const imageUrl = imageUrlMatch ? imageUrlMatch[1] : ""
 
-		const marketplaceButton = document.createElement("button")
-		marketplaceButton.textContent = "Find"
-		marketplaceButton.className = "marketplace-button"
-		marketplaceButton.style.cssText = `
+		const marketplaceDiv = document.createElement("div")
+		marketplaceDiv.textContent = "Find"
+		marketplaceDiv.className = "rf76-0v"
+		marketplaceDiv.style.cssText = `
             position: absolute;
             bottom: 15%;
-            left: 37%;
+            left: 29%;
             z-index: 999;
-            padding: 6px 12px;
-            background-color: #1a1a1a;
-            color: #fff;
-            border: none;
-            border-radius: 17px;
+            width: 100px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
             cursor: pointer;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            transition: background-color 0.3s ease-in-out, letter-spacing 0.3s ease-in-out, width 0.3s ease-in-out;
         `
+		marketplaceDiv.addEventListener("mouseenter", () => {
+			marketplaceDiv.style.backgroundColor = "rgba(0, 0, 0, 0.4)"
+			marketplaceDiv.style.width = "90px"
+		})
+		marketplaceDiv.addEventListener("mouseleave", () => {
+			marketplaceDiv.style.backgroundColor = "rgba(255, 255, 255, 0.3)"
+			marketplaceDiv.style.width = "100px"
+		})
 
-		marketplaceButton.addEventListener("click", function () {
-			const requestUrl = `https://www.kogama.com/model/market/?page=1&count=7000&order=undefined&category=avatar&orderBy=created&q=${encodeURIComponent(avatarName)}`
+		marketplaceDiv.addEventListener("click", function () {
+			const requestUrl = `https://www.kogama.com/model/market/?page=1&count=7000&order=undefined&category=avatar&orderBy=created&q=${encodeURIComponent(
+				avatarName,
+			)}`
 
 			fetch(requestUrl)
 				.then(response => response.json())
 				.then(data => {
 					if (data.data.length === 1) {
-						console.log("Single object found:")
-						console.log(data.data[0])
 						openMarketplacePage(data.data[0])
 					} else {
 						let foundMatch = false
 						const results = []
 						for (const object of data.data) {
 							if (getBaseUrl(object.image_large) === getBaseUrl(imageUrl)) {
-								console.log("Match Found:")
-								console.log(object)
 								foundMatch = true
 								openMarketplacePage(object)
 								break
@@ -1660,7 +1631,7 @@ GM_addStyle(`
 		})
 
 		avatar.style.position = "relative"
-		avatar.appendChild(marketplaceButton)
+		avatar.appendChild(marketplaceDiv)
 	}
 
 	function openMarketplacePage(object) {
@@ -1684,7 +1655,13 @@ GM_addStyle(`
 	}
 
 	function showModal(results) {
+		const existingModal = document.querySelector(".rf76-modal")
+		if (existingModal) {
+			existingModal.remove()
+		}
+
 		const overlay = document.createElement("div")
+		overlay.className = "rf76-overlay"
 		overlay.style.cssText = `
             position: fixed;
             top: 0;
@@ -1699,15 +1676,18 @@ GM_addStyle(`
 			overlay.remove()
 		})
 
+
 		const modal = document.createElement("div")
+		modal.className = "rf76-modal"
 		modal.style.cssText = `
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             padding: 20px;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: #fff;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            color: #000;
             border-radius: 10px;
             z-index: 9999;
             width: 80%;
@@ -1719,10 +1699,34 @@ GM_addStyle(`
             gap: 20px;
         `
 
+		const closeButton = document.createElement("div")
+		closeButton.textContent = "✖"
+		closeButton.className = "rf76-close"
+		closeButton.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.4);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        `
+		closeButton.addEventListener("click", () => {
+			modal.remove()
+			overlay.remove()
+		})
+
+		modal.appendChild(closeButton)
 		results.forEach(result => {
 			const resultDiv = document.createElement("div")
 			resultDiv.style.cssText = `
-                width: calc(50% - 10px); /* Two columns with gap */
+                width: calc(50% - 10px);
                 margin-bottom: 20px;
                 position: relative;
                 overflow: hidden;
@@ -1741,7 +1745,7 @@ GM_addStyle(`
 			avatarImg.style.cssText = `
                 width: 100%;
                 height: auto;
-                opacity: 0; /* Initially hide image to show once loaded */
+                opacity: 0;
                 transition: opacity 0.3s ease-in-out;
             `
 
@@ -1750,7 +1754,7 @@ GM_addStyle(`
 			avatarLink.textContent = result.name
 			avatarLink.style.cssText = `
                 position: absolute;
-                font-size: 30px;k
+                font-size: 30px;
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
@@ -1786,16 +1790,15 @@ GM_addStyle(`
 			rescanAvatars()
 
 			setInterval(function () {
-				const missingButtons = document.querySelectorAll(
-					".MuiGrid-root.MuiGrid-container.MuiGrid-spacing-xs-2 .MuiGrid-item:not(:has(.marketplace-button))",
-				)
-				if (missingButtons.length > 0) {
+				const missingButtons = document.querySelectorAll(".rf76-0v")
+				if (missingButtons.length === 0) {
 					rescanAvatars()
 				}
-			}, 5000)
-		}, 2000)
+			}, 2000)
+		}, 1000)
 	})
 })()
+
 ;(function() {
     "use strict";
 
@@ -3601,124 +3604,139 @@ GM_addStyle(`
 })()
 
 ;(function () {
-	"use strict"
+    "use strict";
 
-	function appendCustomButton() {
-		const customButtonImageUrl = "https://i.imgur.com/vQtwuy7.png"
-		const targetElements = document.querySelectorAll("._2neko ._2eW3Y")
-		targetElements.forEach(function (targetElement) {
-			if (!targetElement.querySelector(".custom-button")) {
-				const overlayDiv = document.createElement("div")
-				overlayDiv.classList.add("overlay-div")
-				overlayDiv.style.position = "absolute"
-				overlayDiv.style.top = "0"
-				overlayDiv.style.left = "0"
-				overlayDiv.style.width = "100%"
-				overlayDiv.style.height = "100%"
-				overlayDiv.style.zIndex = "9999"
-				overlayDiv.style.pointerEvents = "none"
+    function randomString(length) {
+        return Math.random().toString(36).substring(2, length + 2);
+    }
 
-				const customButton = document.createElement("button")
-				customButton.classList.add("custom-button")
-				customButton.style.position = "absolute"
-				customButton.style.top = "2px"
-				customButton.style.right = "-5px"
-				customButton.style.zIndex = "10000"
-				customButton.style.background = "transparent"
-				customButton.style.pointerEvents = "auto"
-				customButton.innerHTML =
-					'<img src="' +
-					customButtonImageUrl +
-					'" alt="Custom Button" width="32" height="32">'
-				customButton.addEventListener("click", function (event) {
-					event.preventDefault()
-					event.stopPropagation()
-					const imgSrc = targetElement.querySelector("img").src
-					displayPreview(imgSrc)
-				})
+    function appendCustomButton() {
+        const customButtonImageUrl = "https://i.imgur.com/vQtwuy7.png";
+        const targetElements = document.querySelectorAll("._2neko ._2eW3Y");
+        targetElements.forEach(function (targetElement) {
+            const existingButton = targetElement.querySelector("[class^='btn-']");
+            if (!existingButton) {
+                const overlayDiv = document.createElement("div");
+                overlayDiv.classList.add("ovl-" + randomString(8));
+                overlayDiv.style.position = "absolute";
+                overlayDiv.style.top = "0";
+                overlayDiv.style.left = "0";
+                overlayDiv.style.width = "100%";
+                overlayDiv.style.height = "100%";
+                overlayDiv.style.zIndex = "9999";
+                overlayDiv.style.pointerEvents = "none";
 
-				overlayDiv.appendChild(customButton)
-				targetElement.appendChild(overlayDiv)
-			}
-		})
-	}
+                const customButton = document.createElement("div");
+                customButton.classList.add("btn-" + randomString(8));
+                customButton.style.position = "absolute";
+                customButton.style.top = "2px";
+                customButton.style.right = "-5px";
+                customButton.style.zIndex = "10000";
+                customButton.style.background = "transparent";
+                customButton.style.pointerEvents = "auto";
+                customButton.style.cursor = "pointer";
+                customButton.style.width = "40px";
+                customButton.style.height = "40px";
+                customButton.style.display = "flex";
+                customButton.style.alignItems = "center";
+                customButton.style.justifyContent = "center";
+                customButton.innerHTML =
+                    '<img src="' +
+                    customButtonImageUrl +
+                    '" alt="Custom Button" width="32" height="32" style="max-width: 100%; height: auto;">';
 
-	function displayPreview(imgSrc) {
-		const darkLayer = document.createElement("div")
-		darkLayer.classList.add("dark-layer")
-		darkLayer.style.position = "fixed"
-		darkLayer.style.top = "0"
-		darkLayer.style.left = "0"
-		darkLayer.style.width = "100%"
-		darkLayer.style.height = "100%"
-		darkLayer.style.backgroundColor = "rgba(0, 0, 0, 0.5)"
-		darkLayer.style.zIndex = "9998"
+                customButton.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const imgSrc = targetElement.querySelector("img").src;
+                    displayPreview(imgSrc);
+                });
 
-		document.body.appendChild(darkLayer)
+                overlayDiv.appendChild(customButton);
+                targetElement.appendChild(overlayDiv);
+            }
+        });
+    }
 
-		const previewContainer = document.createElement("div")
-		previewContainer.classList.add("preview-container")
-		previewContainer.style.position = "fixed"
-		previewContainer.style.top = "50%"
-		previewContainer.style.left = "50%"
-		previewContainer.style.transform = "translate(-50%, -50%)"
-		previewContainer.style.maxWidth = "90%"
-		previewContainer.style.maxHeight = "90%"
-		previewContainer.style.backgroundColor = "transparent"
-		previewContainer.style.zIndex = "9999"
-		previewContainer.style.borderRadius = "5px"
+    function displayPreview(imgSrc) {
+        const darkLayer = document.createElement("div");
+        darkLayer.classList.add("dl-" + randomString(8));
+        darkLayer.style.position = "fixed";
+        darkLayer.style.top = "0";
+        darkLayer.style.left = "0";
+        darkLayer.style.width = "100%";
+        darkLayer.style.height = "100%";
+        darkLayer.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+        darkLayer.style.zIndex = "9998";
 
-		const previewImage = document.createElement("img")
-		previewImage.src = imgSrc
-		previewImage.style.width = "100%"
-		previewImage.style.height = "auto"
-		previewImage.style.borderRadius = "5px"
+        document.body.appendChild(darkLayer);
 
-		previewContainer.appendChild(previewImage)
+        const previewContainer = document.createElement("div");
+        previewContainer.classList.add("pc-" + randomString(8));
+        previewContainer.style.position = "fixed";
+        previewContainer.style.top = "50%";
+        previewContainer.style.left = "50%";
+        previewContainer.style.transform = "translate(-50%, -50%)";
+        previewContainer.style.maxWidth = "90%";
+        previewContainer.style.maxHeight = "90%";
+        previewContainer.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+        previewContainer.style.backdropFilter = 'blur(6px)';
+        previewContainer.style.zIndex = "9999";
+        previewContainer.style.borderRadius = "5px";
+        previewContainer.style.padding = "20px";
+        previewContainer.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.3)";
 
-		const buttonsContainer = document.createElement("div")
-		buttonsContainer.style.position = "absolute"
-		buttonsContainer.style.bottom = "10px"
-		buttonsContainer.style.left = "50%"
-		buttonsContainer.style.transform = "translateX(-50%)"
-		buttonsContainer.style.display = "flex"
-		buttonsContainer.style.flexDirection = "column"
-		buttonsContainer.style.alignItems = "center"
+        const previewImage = document.createElement("img");
+        previewImage.src = imgSrc;
+        previewImage.style.width = "100%";
+        previewImage.style.maxHeight = "70vh";
+        previewImage.style.objectFit = "contain";
+        previewImage.style.borderRadius = "5px";
 
-		const copyLinkButton = document.createElement("button")
-		copyLinkButton.textContent = "Copy Link"
-		copyLinkButton.style.marginBottom = "10px"
-		copyLinkButton.addEventListener("click", function () {
-			navigator.clipboard.writeText(imgSrc).then(
-				function () {
-					alert("Direct link copied to clipboard!")
-				},
-				function () {
-					alert("Failed to copy direct link.")
-				},
-			)
-		})
+        const urlInput = document.createElement("input");
+        urlInput.type = "text";
+        urlInput.value = imgSrc;
+        urlInput.style.width = "100%";
+        urlInput.style.padding = "10px";
+        urlInput.style.marginBottom = "10px";
+        urlInput.style.borderRadius = "4px";
+        urlInput.style.border = "1px solid #ccc";
+        urlInput.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+        urlInput.style.backgroundColor = "#333";
+        urlInput.style.color = "#fff";
 
-		const closeButton = document.createElement("button")
-		closeButton.textContent = "Close"
-		closeButton.addEventListener("click", function () {
-			previewContainer.remove()
-			darkLayer.remove()
-		})
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.style.display = "flex";
+        buttonsContainer.style.flexDirection = "column";
+        buttonsContainer.style.alignItems = "center";
 
-		buttonsContainer.appendChild(copyLinkButton)
-		buttonsContainer.appendChild(closeButton)
+        const closeButton = document.createElement("button");
+        closeButton.textContent = "Close";
+        closeButton.classList.add("cb-" + randomString(8));
+        closeButton.style.padding = "10px 15px";
+        closeButton.style.borderRadius = "4px";
+        closeButton.style.border = "none";
+        closeButton.style.backgroundColor = "#dc3545";
+        closeButton.style.color = "#fff";
+        closeButton.style.cursor = "pointer";
 
-		previewContainer.appendChild(buttonsContainer)
+        closeButton.addEventListener("click", function () {
+            previewContainer.remove();
+            darkLayer.remove();
+        });
 
-		document.body.appendChild(previewContainer)
-	}
+        buttonsContainer.appendChild(urlInput);
+        buttonsContainer.appendChild(closeButton);
 
-	appendCustomButton()
+        previewContainer.appendChild(previewImage);
+        previewContainer.appendChild(buttonsContainer);
 
-	setInterval(appendCustomButton, 1100)
+        document.body.appendChild(previewContainer);
+    }
+
+    appendCustomButton();
+    setInterval(appendCustomButton, 1100);
 })()
-
 ;(function () {
     "use strict"
 
@@ -3731,6 +3749,22 @@ GM_addStyle(`
         #mobile-page #profile-page .section-top .section-top-background { background-image: none !important; }
         .background-avatar { background-image: none !important; }
         ::-webkit-scrollbar { width: 1px; }
+._13UrL ._23KvS ._1jTCU {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    width: 410px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+}
+
+._1jTCU span {
+    text-align: center;
+}
+
+
     `)
 
     applyGradientToElement(getSavedGradientSettings())
@@ -3963,90 +3997,106 @@ GM_addStyle(`
     }
 })()
 
-;(function () {
-	"use strict";
+;
+(function() {
+    "use strict";
 
-	function addCopyButton() {
-		var descriptionDiv = document.querySelector('div[itemprop="description"]');
+    function addCopyButton() {
+        var descriptionDiv = document.querySelector('div[itemprop="description"]');
 
-		if (descriptionDiv) {
-			var copyButton = document.createElement("button");
-			copyButton.textContent = "Copy Description";
-			copyButton.style.display = "block";
-			copyButton.style.marginTop = "10px";
-			copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
-            copyButton.backdropFilter = "blur(8px)";
-			copyButton.style.boxShadow =
-				"0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1)";
-			copyButton.style.backdropFilter = "blur(10px)";
-            copyButton.style.color = '#ffff';
-			copyButton.style.borderRadius = "8px";
-            copyButton.style.height = '40px';
-            copyButton.style.width = '170px';
-			copyButton.style.marginBottom = "10px";
-
-			copyButton.addEventListener("mouseenter", function () {
-				copyButton.style.transition = "background-color 0.3s ease-in-out";
-				copyButton.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
-			});
-
-			copyButton.addEventListener("mouseleave", function () {
-				copyButton.style.transition = "background-color 0.3s ease-in-out";
-				copyButton.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
-			});
-
-			copyButton.addEventListener("click", function () {
-				var descriptionText = getDescriptionRawText(descriptionDiv);
-				copyToClipboard(descriptionText);
-				showCustomNotification("Description copied to clipboard!");
-			});
-
-			descriptionDiv.appendChild(copyButton);
-		}
+        if (descriptionDiv) {
+            var copyButton = document.createElement("div");
+            copyButton.textContent = "Copy Description";
+            copyButton.classList.add('cddrf-103');
+            var styles = `
+	.cddrf-103 {
+		display: inline-block;
+		cursor: pointer;
+		text-align: center;
+		vertical-align: middle;
+		line-height: 40px;
+		width: 200px;
+		height: 40px;
+		padding: 0 20px;
+		margin-top: 10px;
+		margin-bottom: 10px;
+		color: #fff;
+		background-color: rgba(255, 255, 255, 0.3) !important;
+		backdrop-filter: blur(10px);
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+		border-radius: 8px;
+		letter-spacing: 1.5px;
+		font-size: 16px;
+		white-space: nowrap;
+		transition: background-color 0.3s ease-in-out, letter-spacing 0.3s ease-in-out, width 0.3s ease-in-out;
+		font-family: inherit !important;
+		font-style: normal !important;
+		box-sizing: border-box;
 	}
 
-	function getDescriptionRawText(descriptionDiv) {
-		return descriptionDiv.innerText;  // This captures the raw text content ignoring CSS styles
+	.cddrf-103:hover {
+		background-color: rgba(0, 0, 0, 0.4) !important;
+		letter-spacing: 0.5px;
+		width: 190px;
 	}
+`;
 
-	function copyToClipboard(text) {
-		var tempTextarea = document.createElement("textarea");
-		tempTextarea.value = text;
-		document.body.appendChild(tempTextarea);
-		tempTextarea.select();
-		document.execCommand("copy");
-		document.body.removeChild(tempTextarea);
-	}
+            var styleSheet = document.createElement("style");
+            styleSheet.type = "text/css";
+            styleSheet.innerText = styles;
+            document.head.appendChild(styleSheet);
 
-	function showCustomNotification(message) {
-		var notification = document.createElement("div");
-		notification.textContent = message;
-		notification.style.position = "fixed";
-		notification.style.top = "20px";
-		notification.style.left = "50%";
-		notification.style.transform = "translateX(-50%)";
-		notification.style.padding = "10px";
-		notification.style.background = "rgba(0, 0, 0, 0.8)";
-		notification.style.color = "#fff";
-		notification.style.borderRadius = "5px";
-		notification.style.boxShadow = "0px 2px 5px rgba(0, 0, 0, 0.3)";
-		notification.style.zIndex = "9999";
-		notification.style.transition = "opacity 0.3s ease-in-out";
+            copyButton.addEventListener("click", function() {
+                var descriptionText = getDescriptionRawText(descriptionDiv);
+                copyToClipboard(descriptionText);
+                showCustomNotification("Description copied to clipboard!");
+            });
 
-		document.body.appendChild(notification);
+            descriptionDiv.appendChild(copyButton);
+        }
+    }
 
-		setTimeout(function () {
-			notification.style.opacity = "0";
+    function getDescriptionRawText(descriptionDiv) {
+        return descriptionDiv.innerText;
+    }
 
-			setTimeout(function () {
-				notification.remove();
-			}, 300);
-		}, 2000);
-	}
+    function copyToClipboard(text) {
+        var tempTextarea = document.createElement("textarea");
+        tempTextarea.value = text;
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempTextarea);
+    }
 
-	window.addEventListener("load", addCopyButton);
+    function showCustomNotification(message) {
+        var notification = document.createElement("div");
+        notification.textContent = message;
+        notification.style.position = "fixed";
+        notification.style.top = "20px";
+        notification.style.left = "50%";
+        notification.style.transform = "translateX(-50%)";
+        notification.style.padding = "10px";
+        notification.style.background = "rgba(0, 0, 0, 0.8)";
+        notification.style.color = "#fff";
+        notification.style.borderRadius = "5px";
+        notification.style.boxShadow = "0px 2px 5px rgba(0, 0, 0, 0.3)";
+        notification.style.zIndex = "9999";
+        notification.style.transition = "opacity 0.3s ease-in-out";
+
+        document.body.appendChild(notification);
+
+        setTimeout(function() {
+            notification.style.opacity = "0";
+
+            setTimeout(function() {
+                notification.remove();
+            }, 300);
+        }, 2000);
+    }
+
+    window.addEventListener("load", addCopyButton);
 })()
-
 ;(function () {
 	"use strict"
 
@@ -5418,11 +5468,9 @@ const injectCss = (id, css) => {
         }
     `)
 })()
-
-;(function () {
+;
+(function () {
     "use strict";
-
-    // Function to parse Markdown and apply HTML formatting
     function parseMarkdown(text) {
         const markdownLinkRegex = /\[(.*?)\]\((.*?)\)/g;
         let processedText = text.replace(markdownLinkRegex, function (match, title, url) {
@@ -5453,14 +5501,13 @@ const injectCss = (id, css) => {
         return processedLines.join("<br>");
     }
 
-    // Function to handle and format text in an element
     function handleElement(element) {
-        if (element.hasAttribute('data-formatted')) return; // Skip already formatted elements
+        if (element.hasAttribute('data-formatted')) return;
 
         const originalText = element.innerHTML;
         const processedText = parseMarkdown(originalText);
         element.innerHTML = processedText;
-        element.setAttribute('data-formatted', 'true'); // Mark element as formatted
+        element.setAttribute('data-formatted', 'true');
 
         const style = document.createElement("style");
         style.innerHTML = `
@@ -5488,71 +5535,26 @@ const injectCss = (id, css) => {
         });
     }
 
-    // Function to apply formatting to all matching elements
     function applyFormatting() {
         const elements = document.querySelectorAll('._13UrL .kR267 ._9smi2 ._1rJI8 ._1aUa_');
         elements.forEach(handleElement);
     }
-
-    // Create a MutationObserver to observe changes in the DOM
     const observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             if (mutation.type === 'childList') {
-                applyFormatting(); // Apply formatting to new elements
+                applyFormatting();
             }
         });
     });
-
-    // Start observing the entire document
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
 
-    // Initial formatting
     applyFormatting();
-})();
-
-
-;(function () {
-	"use strict"
-
-	const encodedUID = "MTc3NjkyODk="
-
-	function decodeBase64(encodedStr) {
-		return atob(encodedStr)
-	}
-
-	function CheckWindow() {
-		const profileURL = `https://www.kogama.com/profile/${decodeBase64(encodedUID)}/`
-		return window.location.href === profileURL
-	}
-
-	function InjectVariety() {
-		const css = `
-            .UA3TP._2bUqU[style*="transform: none"]::before {
-                content: '';
-                width: 40px;
-                height: 40px;
-                background: url("https://i.imgur.com/hfnYocD.png") center/cover;
-                transform: translate(-4px, -2px);
-                z-index: 99999;
-                position: absolute;
-                pointer-events: none;
-            }
-        `
-		const style = document.createElement("style")
-		style.type = "text/css"
-		style.appendChild(document.createTextNode(css))
-		document.head.appendChild(style)
-	}
-
-	if (CheckWindow()) {
-		InjectVariety()
-	}
 })()
-
-;(function () {
+;
+(function () {
     "use strict";
 
     const isOnProfilePage = /^https:\/\/www\.kogama\.com\/profile\/\d+\/?$/.test(window.location.href);
