@@ -1,14 +1,17 @@
 // ==UserScript==
 // @name         Utilify: KoGaMa
 // @namespace    discord.gg/C2ZJCZXKTu
-// @version      4.0.6.4
+// @version      4.0.6.7
 // @description  KoGaMa Utility script that aims to port as much KoGaBuddy features as possible alongside adding my own.
 // @author       ⛧ Simon
 // @match        *://www.kogama.com/*
 // @grant        GM_setClipboard
-// @grant        GM_xmlhttpRequest
+// @grant        GM.xmlHttpRequest
 // @grant        GM_addStyle
 // @grant        GM_download
+// @connect      kogama.com.br
+// @connect      kogama.com
+// @connect      friends.kogama.com
 // @require      https://code.jquery.com/jquery-3.6.0.min.js
 // ==/UserScript==
 
@@ -17,7 +20,104 @@
 //  WILL NOT BE PUT ON GREASYFORK EVER AGAIN
 
 
+(function() {
+    'use strict';
+    const regexPattern = /(https?:\/\/(?:www\.)?(?:kogama\.com\.br|friends\.kogama\.com|www\.kogama\.com)\/profile\/\d+\/|https?:\/\/(?:www\.)?(?:kogama\.com\.br|friends\.kogama\.com|www\.kogama\.com)\/profile\/[A-Z]+UID\/)/g;
+    function fetchUserTitle(url) {
+        return new Promise((resolve, reject) => {
+            GM.xmlHttpRequest({
+                method: 'GET',
+                url: url,
+                onload: function(response) {
+                    if (response.status === 200) {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(response.responseText, 'text/html');
+                        const title = doc.querySelector('title') ? doc.querySelector('title').innerText : 'No title';
+                        const cleanedTitle = cleanTitle(title);
+                        resolve({ url, title: cleanedTitle });
+                    } else {
+                        reject(`Error fetching ${url}: ${response.statusText}`);
+                    }
+                },
+                onerror: function(error) {
+                    reject(`Error fetching ${url}: ${error}`);
+                }
+            });
+        });
+    }
+    function cleanTitle(fullTitle) {
+        const cleaned = fullTitle.replace(/ - KoGaMa.*$/, '').trim();
+        return cleaned;
+    }
+    async function replaceUrls() {
+        const foundUrls = new Set();
+        const bodyText = document.body.innerText;
+        let match;
 
+        while ((match = regexPattern.exec(bodyText)) !== null) {
+            foundUrls.add(match[0]);
+        }
+        for (const url of foundUrls) {
+            console.log(`Fetching title for: ${url}`);
+            try {
+                const { title } = await fetchUserTitle(url);
+                const serverLabel = getServerLabel(url);
+                const linkText = `[${title}](${url})`;
+                const linkElement = document.createElement('a');
+                linkElement.href = url;
+                linkElement.innerHTML = linkText;
+                linkElement.target = '_blank';
+                linkElement.style.color = '#E0F7FA';
+                linkElement.style.textDecoration = 'none';
+                linkElement.style.textShadow = '0 0 5px rgba(224, 247, 250, 1)';
+                linkElement.style.cursor = 'pointer';
+                const labelElement = document.createElement('span');
+                labelElement.innerText = serverLabel;
+                labelElement.style.fontSize = '0.8em';
+                labelElement.style.color = 'gray';
+                labelElement.style.verticalAlign = 'super';
+                labelElement.style.marginLeft = '5px';
+
+                const elements = document.evaluate(`//text()[contains(., '${url}')]`, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                for (let i = 0; i < elements.snapshotLength; i++) {
+                    const parentElement = elements.snapshotItem(i).parentNode;
+                    const originalText = elements.snapshotItem(i).nodeValue;
+                    const parts = originalText.split(url);
+                    const fragment = document.createDocumentFragment();
+
+                    if (parts[0]) {
+                        fragment.appendChild(document.createTextNode(parts[0]));
+                    }
+                    fragment.appendChild(linkElement);
+                    fragment.appendChild(labelElement);
+                    if (parts[1]) {
+                        fragment.appendChild(document.createTextNode(parts[1]));
+                    }
+                    parentElement.replaceChild(fragment, elements.snapshotItem(i));
+                }
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    }
+    function getServerLabel(url) {
+        if (url.includes('kogama.com.br')) {
+            return 'BR';
+        } else if (url.includes('friends.kogama.com')) {
+            return 'FR';
+        } else if (url.includes('www.kogama.com')) {
+            return 'WWW';
+        }
+        return '';
+    }
+    function startContinuousScan() {
+        replaceUrls();
+        setInterval(replaceUrls, 5000);
+    }
+    startContinuousScan();
+})()
+;	
 (function() {
     function getCoupon(code) {
         return fetch("https://www.kogama.com/api/coupon/redeem/", {
